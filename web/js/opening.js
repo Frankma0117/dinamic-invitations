@@ -176,15 +176,8 @@ export function prepareIntroVideo(v) {
   return el;
 }
 
-function bigScreen(video) {
-  const req = video.requestFullscreen || video.webkitRequestFullscreen;
-  if (!req && video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); return; }   // iPhone
-  if (!req) return;
-  Promise.resolve(req.call(video))
-    .then(() => screen.orientation?.lock?.('landscape'))
-    .catch(() => {});
-}
-
+const SPEAKER_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+const SPEAKER_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg>';
 const PHONE = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="52" rx="5"/><path d="M29 52h6"/></svg>';
 
 /**
@@ -218,21 +211,34 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
   // With the phone turned the media fills the screen: a big, always visible ✕ to go on.
   const x = h('button', { class: 'iv-x', type: 'button', 'aria-label': 'Cerrar y continuar', onclick: close },
     h('span', { svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' }));
-  let big = null;
+  let soundBtn = null;
   if (m.kind === 'image') {
     media = h('img', { src: m.src, alt: m.alt || '', decoding: 'async' });
     const measure = () => setWide(media.naturalWidth, media.naturalHeight);
     if (media.complete) setTimeout(measure); else media.addEventListener('load', measure);
   } else if (m.src) {
     media = el || h('video', { src: m.src, playsinline: true, preload: 'auto', poster: m.poster || null });
-    media.controls = true;
+    // It must feel like part of the card, not like a video player: no controls, no picture-in-picture, no pause on tap.
+    media.controls = false;
     media.loop = true;                          // the video plays on repeat until the guest continues
+    media.disablePictureInPicture = true;
+    media.setAttribute('disablepictureinpicture', '');
+    media.setAttribute('disableremoteplayback', '');
+    media.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
+    media.addEventListener('contextmenu', e => e.preventDefault());
+    const paintSound = () => {
+      soundBtn.classList.toggle('muted', media.muted);
+      soundBtn.setAttribute('aria-label', media.muted ? 'Activar sonido' : 'Silenciar');
+      soundBtn.replaceChildren(h('span', { svg: media.muted ? SPEAKER_OFF : SPEAKER_ON }), ...(media.muted ? [h('b', null, 'Activar sonido')] : []));
+    };
+    soundBtn = h('button', { class: 'iv-sound', type: 'button', onclick: () => { media.muted = !media.muted; media.play().catch(() => {}); paintSound(); } });
+    media.addEventListener('volumechange', paintSound);
+    paintSound();
     let last = 0;                               // after the first full round "Continuar" starts to pulse
     media.addEventListener('timeupdate', () => { if (media.currentTime + .5 < last) cont.classList.add('ready'); last = media.currentTime; });
     const measure = () => setWide(media.videoWidth, media.videoHeight);
     if (media.readyState >= 1) setTimeout(measure); else media.addEventListener('loadedmetadata', measure);
-    media.play().catch(() => { media.muted = true; media.play().catch(() => {}); });
-    big = h('button', { class: 'btn iv-big', type: 'button', onclick: () => bigScreen(media) }, '⛶ Ver en grande');
+    media.play().catch(() => { media.muted = true; paintSound(); media.play().catch(() => {}); });   // the phone blocked sound: start silent
   } else {
     media = h('iframe', { src: videoEmbed(m.url, { autoplay: true }).src, title: 'Video', allow: 'autoplay; fullscreen; picture-in-picture', allowfullscreen: true });
     setTimeout(() => cont.classList.add('ready'), 4000);
@@ -271,8 +277,8 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
       art && h('div', { class: 'corner tl', 'aria-hidden': 'true', svg: art }),
       art && h('div', { class: 'corner br', 'aria-hidden': 'true', svg: art }),
       h('div', { class: 'ornament small iv-orn', svg: ornament(decor) }),
-      h('div', { class: `iv-frame${m.kind === 'image' ? ' image' : m.src ? '' : ' embed'}` }, media),
-      h('div', { class: 'btn-row iv-actions' }, big, cont)),
+      h('div', { class: `iv-frame${m.kind === 'image' ? ' image' : m.src ? '' : ' embed'}` }, media, soundBtn),
+      h('div', { class: 'btn-row iv-actions' }, cont)),
     x, rotate);
   if (m.kind === 'image') setTimeout(() => cont.classList.add('ready'), 3500);
   document.body.append(box);
