@@ -15,7 +15,8 @@ export const DEFAULTS = {
   meta: { title: '', description: '', image: '', url: '', previewStyle: 'envelope' },
   guest: { param: 'para', fallback: 'Para ti', seatsText: 'Pase válido para {cupos} persona(s)' },   // ?para=Laura%20Gómez
   // Invitados con enlace propio (/laura-gomez/): cada campo vacío usa el general.
-  // { slug, name, gender ('' | f | m | p = grupo), phone, greeting, pretitle, message, image, video, seats }
+  // { slug, name, callName ("Señor Rector": va en el mensaje de WhatsApp), gender ('' | f | m | p = grupo), phone,
+  //   greeting, pretitle, message, image, video, seats }
   guests: [],
   share: { message: 'Hola {nombre} 💌 Te comparto tu invitación: {enlace}' },   // texto al enviar el enlace por WhatsApp
   event: { name: '', date: '', time: '', endTime: '', tz: '-05:00', venue: '', address: '' },

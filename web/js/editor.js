@@ -489,7 +489,7 @@ const prettyName = base => {
   const s = base.replace(/[-_.]+/g, ' ').replace(/\s+/g, ' ').trim();
   return s === s.toLowerCase() ? s.replace(/\b\p{L}/gu, c => c.toUpperCase()) : s;
 };
-const newGuest = name => ({ slug: '', name, gender: '', phone: '', greeting: '', pretitle: '', message: '', image: '', video: '', seats: '' });
+const newGuest = name => ({ slug: '', name, callName: '', gender: '', phone: '', greeting: '', pretitle: '', message: '', image: '', video: '', seats: '' });
 let bulk = null;                                         // { done, total, name } while uploading several videos
 
 async function bulkVideos(files) {
@@ -516,13 +516,17 @@ async function bulkVideos(files) {
   render();
 }
 
+/** WhatsApp message for a guest: {nombre} = how you call them ("Señor Rector") or, if empty, their name. */
+const shareText = g => genderize(fillTemplate(cfg.share.message, { nombre: g.callName || g.name, enlace: guestLink(g) }), g.gender);
+
 function guestRow(g, i) {
   const id = `g:${i}`;
   const isOpen = open.has(id);
   const gp = `guests.${i}.`;
   const key = keyOf(g);
   const st = uploads.get(key);
-  const share = genderize(fillTemplate(cfg.share.message, { nombre: g.name, enlace: guestLink(g) }), g.gender);
+  const waHref = () => `https://wa.me/${(g.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(shareText(g))}`;
+  const waBtn = h('a', { class: 'btn sm wa', href: waHref(), target: '_blank', rel: 'noopener', title: 'Enviar por WhatsApp' }, 'WhatsApp');
   const input = h('input', { type: 'file', accept: 'video/*', hidden: true });
   input.onchange = () => {
     const f = input.files[0]; input.value = '';
@@ -532,6 +536,7 @@ function guestRow(g, i) {
     ? h('span', { class: 'chip up-text' }, st.phase === 'processing' ? 'Preparando el video…' : `Subiendo ${Math.round(st.frac * 100)} %`)
     : g.video ? h('span', { class: 'chip ok' }, '🎬 Video listo')
       : h('span', { class: 'chip warn' }, 'Sin video · ', h('button', { type: 'button', onclick: () => input.click() }, 'Subir'));
+  const msgPreview = h('p', { class: 'hint gx' }, h('b', null, 'Mensaje: '), shareText(g));
   const more = !isOpen ? null : h('div', { class: 'grow-more' },
     h('div', { class: 'grid2' },
       h('div', { class: 'field' }, h('span', null, 'Su video'),
@@ -545,7 +550,13 @@ function guestRow(g, i) {
     h('div', { class: 'grid2' },
       field('Saludo propio', gp + 'greeting', { placeholder: genderize(cfg.sections.header.greeting, g.gender) || 'Querido rector, Querida tutora…' }),
       field('Frase arriba del título (propia)', gp + 'pretitle', { placeholder: genderize(cfg.sections.header.pretitle, g.gender) || 'Estás invitado a nuestro' })),
-    field('Su WhatsApp (opcional)', gp + 'phone', { type: 'tel', placeholder: '573001234567', help: 'Para enviarle el enlace directo.' }),
+    h('div', { class: 'grid2' },
+      h('label', { class: 'field' }, h('span', null, 'Cómo llamarlo en WhatsApp'),
+        h('input', { type: 'text', value: g.callName || '', placeholder: 'Señor Rector, Profesora Carolina…',
+          oninput: e => { g.callName = e.target.value; msgPreview.replaceChildren(h('b', null, 'Mensaje: '), shareText(g)); waBtn.href = waHref(); changed(); } }),
+        h('p', { class: 'hint' }, 'Va en el mensaje: "Hola Señor Rector…". Vacío = su nombre.')),
+      field('Su WhatsApp (opcional)', gp + 'phone', { type: 'tel', placeholder: '573001234567', help: 'Para enviarle el enlace directo.' })),
+    msgPreview,
     field('Mensaje propio (opcional)', gp + 'message', { type: 'textarea', rows: 3, placeholder: 'Vacío = el mensaje general' }),
     h('label', { class: 'field' }, h('span', null, 'Enlace'), h('div', { style: { display: 'flex', 'align-items': 'center', gap: '4px' } },
       h('span', { class: 'muted', style: { 'white-space': 'nowrap' } }, `${location.host}/${ev.slug}/`),
@@ -570,7 +581,7 @@ function guestRow(g, i) {
           h('span', { class: 'g-link' }, shortLink(guestLink(g))))),
       h('div', { class: 'g-actions' },
         h('button', { class: 'btn sm', type: 'button', title: 'Copiar su enlace', onclick: () => copy(guestLink(g), `Enlace de ${g.name} copiado`) }, svg(I.copy), 'Copiar'),
-        h('a', { class: 'btn sm wa', href: `https://wa.me/${(g.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(share)}`, target: '_blank', rel: 'noopener', title: 'Enviar por WhatsApp' }, 'WhatsApp'),
+        waBtn,
         h('button', { class: `btn sm${isOpen ? ' primary' : ''}`, type: 'button', 'aria-expanded': String(isOpen),
           onclick: () => { isOpen ? open.delete(id) : open.add(id); render(); } }, isOpen ? 'Listo ✓' : '✏️ Personalizar'))),
     st && h('div', { class: `progress${st.phase === 'processing' ? ' indeterminate' : ''}` }, h('i', { style: { width: `${Math.round(st.frac * 100)}%` } })),
@@ -610,7 +621,7 @@ function guestsTab() {
       } }, 'Agregar'))),
     guests.length > 0 && h('div', { class: 'glist' }, guests.map(guestRow)),
     guests.length > 0 && card({ icon: '📤', title: 'Enviar a todos', sub: 'Mensaje con el que se comparte cada enlace' },
-      field('Mensaje de WhatsApp', 'share.message', { type: 'textarea', rows: 2, help: '{nombre} y {enlace} se reemplazan solos.' }),
+      field('Mensaje de WhatsApp', 'share.message', { type: 'textarea', rows: 2, help: '{nombre} = cómo llamas a cada invitado ("Señor Rector"; si no lo escribiste, su nombre) · {enlace} = su enlace.' }),
       h('div', { style: { display: 'flex', gap: '8px', 'flex-wrap': 'wrap' } },
         h('button', { class: 'btn sm', type: 'button', onclick: () => copy(guests.map(g => `${g.name}: ${guestLink(g)}`).join('\n'), 'Todos los enlaces copiados') }, svg(I.copy), 'Copiar todos los enlaces'),
         h('button', { class: 'btn sm', type: 'button', onclick: () => download(`invitados-${ev.slug}.csv`, '﻿Nombre;Video;Cupos;WhatsApp;Enlace\n' + guests.map(g => [g.name, g.video ? 'sí' : 'no', g.seats || '', g.phone || '', guestLink(g)].map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, '⬇️ Lista para Excel')),
