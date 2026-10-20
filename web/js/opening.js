@@ -215,6 +215,9 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
   };
 
   const cont = h('button', { class: 'btn solid iv-continue', type: 'button', onclick: close }, 'Continuar ›');
+  // With the phone turned the media fills the screen: a big, always visible ✕ to go on.
+  const x = h('button', { class: 'iv-x', type: 'button', 'aria-label': 'Cerrar y continuar', onclick: close },
+    h('span', { svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' }));
   let big = null;
   if (m.kind === 'image') {
     media = h('img', { src: m.src, alt: m.alt || '', decoding: 'async' });
@@ -270,7 +273,7 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
       h('div', { class: 'ornament small iv-orn', svg: ornament(decor) }),
       h('div', { class: `iv-frame${m.kind === 'image' ? ' image' : m.src ? '' : ' embed'}` }, media),
       h('div', { class: 'btn-row iv-actions' }, big, cont)),
-    rotate);
+    x, rotate);
   if (m.kind === 'image') setTimeout(() => cont.classList.add('ready'), 3500);
   document.body.append(box);
   html.classList.add('locked');

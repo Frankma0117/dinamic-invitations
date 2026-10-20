@@ -314,7 +314,14 @@ p { margin: 0 0 .9em; }
 .full .iv-frame { width: 100%; height: 100%; border-radius: 0; box-shadow: none; background: #000; display: grid; place-items: center; }
 .full .iv-frame video, .full .iv-frame img { width: 100%; height: 100%; max-height: none; object-fit: contain; }
 .full .iv-actions { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); margin: 0; z-index: 3; }
-.full .iv-continue { min-height: 42px; padding: 8px 18px; background: rgba(0, 0, 0, .45); color: #fff; border-color: rgba(255, 255, 255, .6); backdrop-filter: blur(6px); box-shadow: none; }
+.full .iv-actions { top: max(14px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 64px); }
+.full .iv-continue { min-height: 46px; padding: 10px 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
+.iv-x { display: none; position: fixed; z-index: 4; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+  width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(255, 255, 255, .95); color: #111; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); place-items: center; }
+.iv-x svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.iv-x:active { transform: scale(.94); }
+.intro-video.full .iv-x { display: grid; }
 
 /* Aviso para girar el celular */
 .rotate-hint { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(6px); animation: fadeIn .4s ease both; }
