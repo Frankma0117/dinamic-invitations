@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Baby Shower · Esperando a Sofía",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "el baby shower de Sofía",
+    "date": "2026-12-06",
+    "time": "15:00",
+    "venue": "Nombre del lugar",
+    "address": "Dirección"
+  },
+  "opening": {
+    "style": "diptych",
+    "seal": {
+      "type": "icon",
+      "icon": "heart"
+    },
+    "confetti": false,
+    "hint": "Toca para abrir"
+  },
+  "theme": {
+    "preset": "romantico"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Estás invitada a nuestro",
+      "title": "Baby Shower",
+      "names": "Esperando a Sofía"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Muy pronto llegará una personita que ya llena nuestros corazones. Queremos celebrarlo contigo."
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "Gracias por acompañarnos en esta dulce espera.",
+      "signature": "Ana & David"
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    },
+    "location": {
+      "enabled": true
+    }
+  }
+}

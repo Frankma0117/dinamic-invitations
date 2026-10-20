@@ -1,5 +1,4 @@
-// Uploads in the editor: images are resized and compressed in the browser; files become data: URIs inside the config
-// (scripts/build.mjs and "Descargar sitio" turn them back into files when publishing).
+// Images in the editor are resized and compressed in the browser before being uploaded (api.js).
 
 const readAsDataURL = blob => new Promise((ok, fail) => {
   const r = new FileReader();
@@ -54,41 +53,4 @@ function hasAlpha(bmp) {
   const d = ctx.getImageData(0, 0, c.width, c.height).data;
   for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
   return false;
-}
-
-export const fileToDataURL = readAsDataURL;
-
-/** Approximate size in MB of a data: URI. */
-export const dataUriMB = s => (typeof s === 'string' && s.startsWith('data:') ? (s.length * .75) / 1048576 : 0);
-
-/* ---------- Draft in IndexedDB (localStorage is too small for images) ---------- */
-
-function db() {
-  return new Promise((ok, fail) => {
-    const req = indexedDB.open('invitaciones-editor', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('kv');
-    req.onsuccess = () => ok(req.result); req.onerror = () => fail(req.error);
-  });
-}
-
-export async function draftGet(key) {
-  try {
-    const d = await db();
-    return await new Promise((ok, fail) => {
-      const r = d.transaction('kv').objectStore('kv').get(key);
-      r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error);
-    });
-  } catch { return undefined; }
-}
-
-export async function draftSet(key, value) {
-  try {
-    const d = await db();
-    await new Promise((ok, fail) => {
-      const t = d.transaction('kv', 'readwrite');
-      t.objectStore('kv').put(value, key);
-      t.oncomplete = ok; t.onerror = () => fail(t.error);
-    });
-    return true;
-  } catch { return false; }
 }

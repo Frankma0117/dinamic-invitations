@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Mi cumpleaños · Samuel cumple 5",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "mi fiesta de cumpleaños",
+    "date": "2026-12-12",
+    "time": "15:00",
+    "venue": "Nombre del lugar",
+    "address": "Dirección"
+  },
+  "opening": {
+    "style": "envelope",
+    "seal": {
+      "type": "icon",
+      "icon": "balloon"
+    },
+    "confetti": true,
+    "hint": "¡Toca para abrir!"
+  },
+  "theme": {
+    "preset": "infantil"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "¡Estás invitado a mi fiesta!",
+      "title": "Mi cumpleaños",
+      "names": "Samuel cumple 5"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Habrá juegos, torta, sorpresas y mucha diversión. ¡No puedes faltar!"
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "¡Te espero para jugar y celebrar!",
+      "signature": "Samuel"
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    },
+    "location": {
+      "enabled": true
+    }
+  }
+}

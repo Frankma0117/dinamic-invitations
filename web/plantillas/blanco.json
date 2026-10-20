@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Título del evento",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "",
+    "date": "",
+    "time": "",
+    "venue": "",
+    "address": ""
+  },
+  "opening": {
+    "style": "envelope",
+    "seal": {
+      "type": "initials",
+      "text": ""
+    },
+    "confetti": false,
+    "hint": "Toca para abrir"
+  },
+  "theme": {
+    "preset": "crema"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "",
+      "title": "Título del evento",
+      "names": ""
+    },
+    "message": {
+      "enabled": true,
+      "text": ""
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "",
+      "signature": ""
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    }
+  }
+}

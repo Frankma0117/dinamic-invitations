@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Fiesta de Grado 2026 · Estás invitado(a)",
+    "description": "Celebremos juntos nuestro grado. Toca para abrir tu invitación.",
+    "image": "/assets/og.jpg",
+    "url": ""
+  },
+  "guest": {
+    "param": "para",
+    "fallback": "Para ti",
+    "seatsText": "Pase válido para {cupos} persona(s)"
+  },
+  "guests": [
+    {
+      "slug": "laura-gomez",
+      "name": "Laura Gómez",
+      "greeting": "Querida compañera",
+      "message": "",
+      "image": "",
+      "seats": 2
+    },
+    {
+      "slug": "andres-perez",
+      "name": "Andrés Pérez",
+      "greeting": "Querido compañero",
+      "message": "",
+      "image": "/assets/ejemplo-grado-2.jpg",
+      "seats": 1
+    },
+    {
+      "slug": "familia-rodriguez",
+      "name": "Familia Rodríguez",
+      "greeting": "Querida familia",
+      "message": "Gracias por acompañarnos en cada paso de este camino. Nos haría muy felices celebrar con ustedes esta noche tan especial.",
+      "image": "",
+      "seats": 4
+    }
+  ],
+  "event": {
+    "name": "nuestra Fiesta de Grado",
+    "date": "2026-12-05",
+    "time": "19:00",
+    "endTime": "02:00",
+    "tz": "-05:00",
+    "venue": "Salón de eventos (cambia este nombre)",
+    "address": "Escribe aquí la dirección del lugar"
+  },
+  "opening": {
+    "style": "envelope",
+    "hint": "Toca para abrir",
+    "seal": {
+      "type": "icon",
+      "text": "G26",
+      "icon": "cap"
+    },
+    "confetti": true
+  },
+  "theme": {
+    "preset": "grado",
+    "primary": "",
+    "secondary": "",
+    "fontTitle": "",
+    "fontBody": "",
+    "fontScript": "",
+    "texture": "",
+    "particles": ""
+  },
+  "music": {
+    "enabled": false,
+    "src": "",
+    "title": "",
+    "volume": 0.6
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Querido compañero(a)",
+      "title": "Fiesta de Grado",
+      "names": "Promoción 2026"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Después de tantos años de esfuerzo, desvelos y sueños compartidos, llegó el momento de celebrarlo juntos. Nos encantaría que nos acompañaras en esta noche mágica, llena de elegancia, alegría y recuerdos inolvidables. Este logro también es tuyo, y sin ti la celebración no estaría completa."
+    },
+    "media": {
+      "enabled": true,
+      "kind": "image",
+      "image": {
+        "src": "/assets/ejemplo-grado.jpg",
+        "alt": "Birretes dorados al aire",
+        "effect": "kenburns"
+      },
+      "video": {
+        "src": "",
+        "url": "",
+        "poster": "",
+        "play": "muted",
+        "intro": false
+      }
+    },
+    "when": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true,
+      "title": "Faltan",
+      "doneText": "¡Hoy es el gran día!"
+    },
+    "location": {
+      "enabled": false,
+      "title": "Ubicación",
+      "mapsUrl": "",
+      "embed": true,
+      "buttonText": "Cómo llegar"
+    },
+    "dresscode": {
+      "enabled": true,
+      "title": "Código de vestimenta",
+      "text": "Formal elegante.\nTe sugerimos estos colores:",
+      "colors": [
+        "#0b1734",
+        "#d6b25e",
+        "#f4ead5",
+        "#1f1f1f"
+      ]
+    },
+    "itinerary": {
+      "enabled": true,
+      "title": "Itinerario",
+      "items": [
+        {
+          "time": "19:00",
+          "title": "Recepción",
+          "text": "Bienvenida y fotos"
+        },
+        {
+          "time": "20:00",
+          "title": "Cena",
+          "text": ""
+        },
+        {
+          "time": "21:30",
+          "title": "Brindis por la promoción",
+          "text": ""
+        },
+        {
+          "time": "22:00",
+          "title": "¡Fiesta!",
+          "text": "Hasta las 2:00 a. m."
+        }
+      ]
+    },
+    "gallery": {
+      "enabled": false,
+      "title": "Galería",
+      "images": []
+    },
+    "rsvp": {
+      "enabled": true,
+      "title": "Confirma tu asistencia",
+      "text": "Tu presencia es muy importante para nosotros.",
+      "phone": "573229457553",
+      "deadline": "2026-11-25",
+      "twoButtons": true,
+      "yesLabel": "Asistiré",
+      "noLabel": "No podré asistir",
+      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}. 🎓",
+      "noMessage": "Hola, soy {nombre}. Lamentablemente no podré asistir a {evento}. ¡Gracias por la invitación!"
+    },
+    "calendar": {
+      "enabled": true,
+      "title": "Guarda la fecha"
+    },
+    "closing": {
+      "enabled": true,
+      "text": "¡Te esperamos para brindar por este logro!",
+      "signature": "Promoción 2026"
+    }
+  }
+}

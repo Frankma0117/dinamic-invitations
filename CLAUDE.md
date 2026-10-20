@@ -5,11 +5,16 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
 
 ## Decisiones
 - Se publica SOLO en el VPS propio (nada de Netlify/Vercel/GitHub Pages; decisión de Manuel 2026-10-20).
-- Sitio estático sin compilación (módulos ES + GSAP y canvas-confetti por CDN). Todo en `config.json`.
-- **Un enlace por invitado** (`guests[]`: slug, name, phone, greeting, message, image, seats). WhatsApp no ejecuta
-  JS: `scripts/build.mjs` escribe `<slug>/index.html` con su Open Graph (`js/og.js`, marcadores `og:start/og:end`).
-  `?para=Nombre` sigue funcionando para quien no esté en la lista.
-- Imágenes subidas en el editor = data: URI en el config; el build las pasa a `assets/media/<hash>`.
+- 2026-10-20 (tarde): Manuel quiere una **plataforma** (no una invitación fija): `/` → panel con contraseña, lista de
+  invitaciones, crear desde plantilla (`web/plantillas/*.json`, lista en `store.TEMPLATES`), editor que guarda solo.
+- Backend FastAPI (`backend/app`): invitaciones en `data/events/<id>.json`, archivos en `data/media/<id>/`, un solo
+  administrador (`data/admin.json`, PBKDF2; contraseña inicial en `data/admin-password.txt`), cookie firmada.
+- El nginx del host acepta 5 MB por petición: los archivos suben en partes de 4 MB (`api.js` → `/upload`).
+  Videos → MP4 H.264 ≤1280 px + póster JPG con ffmpeg en segundo plano (el editor consulta `/media-status`);
+  el póster llena la imagen de vista previa si está vacía.
+- Público: `/<slug>/` y `/<slug>/<invitado>/`; el servidor escribe el Open Graph (`pages.py`) y el navegador lee
+  `/api/i/<slug>`. `RESERVED` en `settings.py` = rutas que no pueden ser slug.
+- **Un enlace por invitado** (`guests[]`: slug, name, phone, greeting, message, image, video, seats).
 
 ## Estado
 - [x] 2026-10-20: invitación (sobre / díptico / telón / sin animación), 12 secciones, 6 temas, partículas, música,
@@ -27,6 +32,8 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
 - [ ] Videos: Manuel los manda; servirlos desde el VPS (`assets/videos/`) o, si pesan mucho, desde Spaces
       `cania-storage` SOLO bajo el prefijo `invitaciones/` (bucket compartido: nunca tocar otros prefijos).
       ffmpeg disponible en el VPS dentro de la imagen de aula-interactiva (usar `docker run --rm`, no el contenedor vivo).
+- [x] 2026-10-20: plataforma con panel, plantillas (8), editor con guardado automático y subida por partes.
+- [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 
 ## Infraestructura
@@ -37,4 +44,4 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
 
 ## Cómo trabajar
 - Código e identificadores en inglés; texto visible en español latino. DOM con `h()` (nunca innerHTML con datos del usuario).
-- Probar: `node scripts/serve.mjs` → http://localhost:5700 (sirve también `/<slug>/`). `node scripts/build.mjs --out dist`.
+- Probar: `cd backend && python -m uvicorn app.main:app --port 5700` → http://localhost:5700 (datos en `data/`).

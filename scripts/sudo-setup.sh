@@ -13,7 +13,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name $host;
-    client_max_body_size 5m;
+    client_max_body_size 5m;          # los archivos grandes llegan por partes de 4 MB
     location / {
         proxy_pass http://127.0.0.1:$port;
         proxy_http_version 1.1;

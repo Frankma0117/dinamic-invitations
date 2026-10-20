@@ -1,6 +1,4 @@
 .git
-dist
-site
-node_modules
+data
 .env
-*.md
+**/__pycache__

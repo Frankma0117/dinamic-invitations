@@ -1,5 +1,5 @@
-// Guest page. Reads config.json (or, inside the editor's preview, the config the editor sends) and shows the invitation.
-// Who is the guest: the page /<slug>/ (meta "guest-slug"), ?i=<slug>, or ?para=Name for anyone not on the list.
+// Guest page. Reads its invitation from the server (/api/i/<event>) — or, inside the editor's preview, the config the
+// editor sends. Who is the guest: the page /<event>/<guest>/ (meta "guest-slug"), or ?para=Name for anyone not on the list.
 import { loadConfig, normalize, forGuest, introVideo, fixSlugs } from './config.js';
 import { applyTheme } from './themes.js';
 import { renderInvitation } from './render.js';
@@ -15,17 +15,11 @@ let music = null;
 let opened = false;
 
 function whoIsGuest(cfg, override) {
-  const slug = override?.slug ?? (document.querySelector('meta[name="guest-slug"]')?.content || params.get('i') || '');
+  const slug = override?.slug ?? (document.querySelector('meta[name="guest-slug"]')?.content || '');
   const g = slug && (cfg.guests || []).find(x => x.slug === slug);
   if (g) return { guest: g, name: g.name || '' };
   const name = override?.name ?? params.get(cfg.guest.param || 'para') ?? '';
   return { guest: null, name: name.trim().slice(0, 60) };
-}
-
-function setMeta(cfg) {
-  if (PREVIEW) return;
-  const title = cfg.meta.title || cfg.sections.header.title;
-  if (title) document.title = title;
 }
 
 function confettiBurst(colors) {
@@ -44,7 +38,6 @@ function render(raw, { replay = false, as } = {}) {
   const { guest, name } = whoIsGuest(base, as);
   const cfg = forGuest(base, guest);
   const theme = applyTheme(cfg.theme);
-  setMeta(cfg);
 
   music = createMusic(cfg.music);
   const ctx = { guest: name, seats: Number(guest?.seats) || 0, decor: theme.decor, music };
@@ -111,7 +104,9 @@ async function boot() {
     return;
   }
   try {
-    render(await loadConfig('config.json'));
+    const event = document.querySelector('meta[name="event"]')?.content;
+    if (!event) throw new Error('Página sin invitación');
+    render(await loadConfig(`/api/i/${encodeURIComponent(event)}`));
   } catch (err) {
     console.error(err);
     showError('No se pudo cargar la invitación. Revisa tu conexión e inténtalo de nuevo.');

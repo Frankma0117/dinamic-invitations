@@ -1,16 +1,25 @@
 # Invitaciones — en el VPS (Contabo), en /opt/invitaciones.
 #   Desplegar/actualizar:  bash scripts/deploy.sh
 # El nginx del servidor publica https://invitaciones.cania.app → 127.0.0.1:5700. Nada más se expone.
+# data/ (invitaciones, imágenes, videos, contraseña) vive fuera del contenedor y no va a git.
 
 name: invitaciones
 
 services:
   web:
-    build:
-      context: .
-      args:
-        SITE_URL: "${SITE_URL:-https://invitaciones.cania.app}"
+    build: .
     restart: unless-stopped
+    user: "${APP_UID:-1001}:${APP_GID:-1001}"
+    env_file: .env
+    environment:
+      TZ: America/Bogota
     ports:
-      - "127.0.0.1:${APP_PORT:-5700}:80"
-    mem_limit: 64m
+      - "127.0.0.1:${APP_PORT:-5700}:8000"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 768m

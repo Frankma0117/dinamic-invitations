@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Lanzamiento 2027 · Nombre de la empresa",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "el Lanzamiento 2027",
+    "date": "2027-01-28",
+    "time": "18:30",
+    "venue": "Auditorio principal",
+    "address": "Dirección"
+  },
+  "opening": {
+    "style": "none",
+    "seal": {
+      "type": "initials",
+      "text": "CO"
+    },
+    "confetti": false,
+    "hint": "Toca para abrir"
+  },
+  "theme": {
+    "preset": "moderno"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Tenemos el gusto de invitarle a",
+      "title": "Lanzamiento 2027",
+      "names": "Nombre de la empresa"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Le esperamos para presentar nuestras novedades y compartir un espacio de conexión con aliados y clientes."
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "Será un gusto contar con su presencia.",
+      "signature": "Equipo organizador"
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    },
+    "location": {
+      "enabled": true
+    },
+    "itinerary": {
+      "enabled": true,
+      "title": "Agenda",
+      "items": [
+        {
+          "time": "18:30",
+          "title": "Registro",
+          "text": ""
+        },
+        {
+          "time": "19:00",
+          "title": "Presentación",
+          "text": ""
+        },
+        {
+          "time": "20:00",
+          "title": "Cóctel",
+          "text": ""
+        }
+      ]
+    }
+  }
+}

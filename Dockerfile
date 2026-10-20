@@ -1,18 +1,14 @@
-# Invitaciones: sitio estático. Etapa 1 arma las páginas (una por invitado, con su vista previa para WhatsApp);
-# etapa 2 las sirve con nginx. Sin base de datos ni procesos propios.
-FROM node:20-alpine AS build
-WORKDIR /src
-COPY package.json index.html config.json ./
-COPY css ./css
-COPY js ./js
-COPY assets ./assets
-COPY editor ./editor
-COPY ejemplos ./ejemplos
-COPY scripts ./scripts
-ARG SITE_URL=
-RUN node scripts/build.mjs --out site --url "$SITE_URL"
+# Invitaciones: panel + invitaciones (FastAPI). ffmpeg optimiza los videos y audios que se suben.
+FROM python:3.12-slim
 
-FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /src/site /usr/share/nginx/html
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1/healthz || exit 1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/srv/backend WEB_DIR=/srv/web DATA_DIR=/data
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /srv/backend
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/app ./app
+COPY web /srv/web
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

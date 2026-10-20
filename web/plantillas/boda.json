@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Nos casamos · Laura & Miguel",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "nuestra boda",
+    "date": "2027-03-20",
+    "time": "16:00",
+    "venue": "Nombre del lugar",
+    "address": "Dirección del lugar"
+  },
+  "opening": {
+    "style": "envelope",
+    "seal": {
+      "type": "initials",
+      "text": "L&M"
+    },
+    "confetti": false,
+    "hint": "Toca para abrir"
+  },
+  "theme": {
+    "preset": "crema"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Tenemos el honor de invitarte a nuestra boda",
+      "title": "Nos casamos",
+      "names": "Laura & Miguel"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Con la bendición de Dios y de nuestros padres, queremos compartir contigo el día más especial de nuestras vidas."
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "Tu presencia es nuestro mejor regalo.",
+      "signature": "Laura & Miguel"
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    },
+    "location": {
+      "enabled": true
+    },
+    "dresscode": {
+      "enabled": true,
+      "title": "Código de vestimenta",
+      "text": "Formal",
+      "colors": []
+    },
+    "itinerary": {
+      "enabled": true,
+      "title": "Itinerario",
+      "items": [
+        {
+          "time": "16:00",
+          "title": "Ceremonia",
+          "text": ""
+        },
+        {
+          "time": "18:00",
+          "title": "Recepción",
+          "text": ""
+        },
+        {
+          "time": "20:00",
+          "title": "¡Fiesta!",
+          "text": ""
+        }
+      ]
+    }
+  }
+}

@@ -1,15 +1,17 @@
 // Editor: form on the left, live preview on the right (an iframe of the invitation in preview mode).
-// The draft is kept in this browser (IndexedDB); "Guardar config.json" downloads the file to publish.
+// Everything is saved on the server by itself (/api/events/<id>); files are uploaded in pieces (api.js).
 import { h, fillTemplate } from './util.js';
 import { normalize, getPath, setPath, SECTION_LABELS, fixSlugs, slugify } from './config.js';
 import { THEMES, FONTS, TEXTURES, PARTICLES, resolveTheme } from './themes.js';
 import { SEAL_ICONS } from './decor.js';
-import { compressImage, previewImage, fileToDataURL, dataUriMB, draftGet, draftSet } from './image.js';
+import { compressImage, previewImage } from './image.js';
+import { api, uploadFile, dataUriToBlob, copyText } from './api.js';
 
-const SITE = new URL('../', location.href);           // folder of the invitation (index.html, config.json)
+const EVENT_ID = location.pathname.split('/').filter(Boolean).pop();
 const $ = s => document.querySelector(s);
 const panel = $('#panel'), frame = $('#frame');
 let cfg = null;
+let ev = { title: '', slug: '' };                      // name and address of the invitation (outside the config)
 let frameReady = false;
 let previewAs = '';                                    // '' = general link; otherwise a guest slug
 const openGroups = new Set(['design']);
@@ -30,20 +32,43 @@ function download(name, text, type = 'application/json') {
   document.body.append(a); a.click(); a.remove();
 }
 
-const srcUrl = v => (!v ? '' : /^(data:|https?:|\/\/)/.test(v) ? v : new URL(v, SITE).href);
-
-function siteUrl() {
-  if (cfg.meta.url) return cfg.meta.url.replace(/\/+$/, '');
-  return SITE.href.replace(/\/+$/, '');
-}
-const guestLink = g => `${siteUrl()}/${g.slug}/`;
+const srcUrl = v => v || '';
+const eventLink = () => `${location.origin}/${ev.slug}/`;
+const guestLink = g => `${eventLink()}${g.slug}/`;
 
 /* ---------- Saving + preview ---------- */
 
-const saveDraft = debounce(async () => {
-  const ok = await draftSet('cfg', cfg);
-  if (!ok) toast('No pude guardar el borrador en este navegador. Descarga el config.json para no perder cambios.', 5000);
-}, 400);
+let saving = Promise.resolve();
+function setStatus(text, cls = '') {
+  const el = $('#saveState');
+  if (el) { el.textContent = text; el.className = `save-state ${cls}`; }
+}
+const saveNow = (extra = {}) => {
+  fixSlugs(cfg.guests);
+  setStatus('Guardando…');
+  saving = saving.then(async () => {
+    try {
+      const r = await api(`/api/events/${EVENT_ID}`, { method: 'PUT', body: { config: cfg, title: ev.title, ...extra } });
+      const slugChanged = r.slug !== ev.slug;
+      ev.slug = r.slug;
+      setStatus('Guardado ✓', 'ok');
+      if (slugChanged) renderPanel();
+    } catch (e) { setStatus('No se guardó: ' + e.message, 'err'); }
+  });
+  return saving;
+};
+const saveDraft = debounce(() => saveNow(), 900);
+addEventListener('beforeunload', e => { if ($('#saveState')?.textContent === 'Guardando…') e.preventDefault(); });
+
+/** Uploads a file for this invitation showing the progress; returns { url, poster } or null if it failed. */
+async function upload(file, name) {
+  try {
+    const r = await uploadFile(EVENT_ID, file, name, (f, phase) => toast(phase === 'processing'
+      ? 'Optimizando el video para celulares… (puede tardar un par de minutos)' : `Subiendo… ${Math.round(f * 100)} %`, 60000));
+    toast('Archivo listo ✓');
+    return r;
+  } catch (e) { toast(e.message, 6000); return null; }
+}
 
 const sendPreview = debounce((replay = false) => {
   if (!frameReady) return;
@@ -100,8 +125,11 @@ function imageField(label, path, o = {}) {
     try {
       toast('Comprimiendo imagen…');
       const data = o.og ? await previewImage(f) : await compressImage(f, { max: o.max || 1600 });
-      setPath(cfg, path, data);
-      toast(`Imagen lista (${dataUriMB(data).toFixed(2)} MB)`);
+      const blob = dataUriToBlob(data);
+      const ext = { 'image/png': 'png', 'image/svg+xml': 'svg', 'image/gif': 'gif' }[blob.type] || 'jpg';
+      const r = await upload(blob, `imagen.${ext}`);
+      if (!r) return;
+      setPath(cfg, path, r.url);
       changed({ rebuild: true });
     } catch (e) { console.error(e); toast('No pude leer esa imagen. Prueba con JPG o PNG.'); }
   };
@@ -116,27 +144,29 @@ function imageField(label, path, o = {}) {
 }
 
 /** Audio / video: the file goes inside the config (better short), or a link. */
-function fileField(label, path, { accept, maxMB = 30, help } = {}) {
+function fileField(label, path, { accept, maxMB = 30, help, onPoster } = {}) {
   const v = getPath(cfg, path);
   const input = h('input', { type: 'file', accept, hidden: true });
   input.onchange = async () => {
     const f = input.files[0];
+    input.value = '';
     if (!f) return;
     const mb = f.size / 1048576;
-    if (mb > maxMB) { toast(`El archivo pesa ${mb.toFixed(1)} MB; el máximo es ${maxMB} MB. Compártelo como enlace o comprímelo.`, 5000); return; }
-    toast('Cargando archivo…');
-    setPath(cfg, path, await fileToDataURL(f));
-    toast(mb > 8 ? `Listo (${mb.toFixed(1)} MB). Es pesado: tardará en abrir con datos móviles.` : 'Archivo listo', 4000);
+    if (mb > maxMB) { toast(`El archivo pesa ${mb.toFixed(0)} MB; el máximo es ${maxMB} MB.`, 5000); return; }
+    const r = await upload(f, f.name);
+    if (!r) return;
+    setPath(cfg, path, r.url);
+    if (r.poster) onPoster?.(r.poster);
     changed({ rebuild: true });
   };
-  const isData = typeof v === 'string' && v.startsWith('data:');
+  const isData = typeof v === 'string' && v.startsWith('/media/');
   return h('div', { class: 'field' }, h('span', null, label),
     h('div', { class: 'img-actions' },
       h('div', { class: 'btns' },
         h('button', { class: 'btn sm primary', type: 'button', onclick: () => input.click() }, 'Subir archivo'),
         v && h('button', { class: 'btn sm danger', type: 'button', onclick: () => { setPath(cfg, path, ''); changed({ rebuild: true }); } }, 'Quitar')),
       isData
-        ? hint(`Archivo cargado (${dataUriMB(v).toFixed(1)} MB).`)
+        ? hint('Archivo subido ✓')
         : h('input', { type: 'url', placeholder: 'o pega un enlace directo (https://…/archivo)', value: v || '', oninput: e => { setPath(cfg, path, e.target.value.trim()); changed(); } }),
       help && hint(help), input));
 }
@@ -250,7 +280,8 @@ function sectionGroups() {
         choices(S + 'media.image.effect', [['kenburns', 'Zoom lento'], ['parallax', 'Parallax'], ['blur', 'Aparece desenfocada'], ['glow', 'Marco con brillo'], ['none', 'Ninguna']], { rebuild: false })),
     ] : [
       field('Enlace de YouTube o Vimeo', S + 'media.video.url', { type: 'url', placeholder: 'https://youtu.be/…', help: 'O sube un MP4 abajo (si hay ambos, se usa el MP4).' }),
-      fileField('Video MP4', S + 'media.video.src', { accept: 'video/mp4,video/webm', maxMB: 40, help: 'Mejor corto y liviano (menos de 15 MB).' }),
+      fileField('Video', S + 'media.video.src', { accept: 'video/*', maxMB: 600, help: 'Cualquier video del celular; el servidor lo optimiza para que abra rápido.',
+        onPoster: p => { if (!cfg.sections.media.video.poster) cfg.sections.media.video.poster = p; if (!cfg.meta.image) cfg.meta.image = p; } }),
       h('div', { class: 'field' }, h('span', null, 'Reproducción'), choices(S + 'media.video.play', [['muted', 'Sola y sin sonido al verla'], ['button', 'Con botón de play']], { rebuild: false })),
       control(S + 'media.video.intro', { type: 'checkbox', label: 'El video ES la invitación: mostrarlo a pantalla completa al abrir (con botón "Continuar")' }),
     ]),
@@ -300,7 +331,10 @@ function sectionGroups() {
     const files = [...multi.files];
     toast(`Comprimiendo ${files.length} foto(s)…`);
     for (const f of files) {
-      try { imgs.push({ src: await compressImage(f, { max: 1280 }), alt: '' }); } catch { toast(`No pude leer ${f.name}`); }
+      try {
+        const r = await upload(dataUriToBlob(await compressImage(f, { max: 1280 })), 'foto.jpg');
+        if (r) imgs.push({ src: r.url, alt: '' });
+      } catch { toast(`No pude leer ${f.name}`); }
     }
     changed({ rebuild: true });
     toast('Fotos agregadas');
@@ -339,7 +373,7 @@ function sectionGroups() {
 
 function musicGroup() {
   return group('music', '🎵', 'Música de fondo', [
-    fileField('Canción (MP3)', 'music.src', { accept: 'audio/mpeg,audio/mp4,audio/ogg', maxMB: 15, help: 'Arranca al abrir el sobre. Un MP3 de 3–4 minutos pesa unos 4 MB.' }),
+    fileField('Canción (MP3)', 'music.src', { accept: 'audio/*', maxMB: 40, help: 'Arranca al abrir el sobre. Un MP3 de 3–4 minutos pesa unos 4 MB.' }),
     field('Volumen', 'music.volume', { type: 'select', number: true, options: [[0.3, 'Bajo'], [0.6, 'Medio'], [0.9, 'Alto']] }),
   ], 'music.enabled');
 }
@@ -358,9 +392,6 @@ function guestsGroup() {
     changed({ rebuild: true });
   };
   const shareText = g => fillTemplate(cfg.share.message, { nombre: g.name, enlace: guestLink(g) });
-  const copy = async (text, msg = 'Copiado') => {
-    try { await navigator.clipboard.writeText(text); toast(msg); } catch { prompt('Copia el texto:', text); }
-  };
 
   const cards = guests.map((g, i) => {
     const d = h('details', { class: 'guest', open: openGroups.has('guest:' + i) || null });
@@ -374,6 +405,7 @@ function guestsGroup() {
       h('div', { class: 'gbody' },
         h('div', { class: 'guest-actions' },
           h('button', { class: 'btn sm', type: 'button', onclick: () => copy(guestLink(g), 'Enlace copiado') }, '📋 Copiar enlace'),
+          h('a', { class: 'btn sm', href: guestLink(g), target: '_blank', rel: 'noopener' }, '↗ Abrir'),
           h('a', { class: 'btn sm wa', href: `https://wa.me/${(g.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(shareText(g))}`, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
           h('button', { class: 'btn sm', type: 'button', onclick: () => { previewAs = g.slug; renderBar(); sendPreview(true); document.body.classList.add('show-preview'); } }, '👁 Ver'),
           h('button', { class: 'btn sm danger', type: 'button', onclick: () => { if (confirm(`¿Quitar a ${g.name}?`)) { guests.splice(i, 1); changed({ rebuild: true }); } } }, 'Quitar')),
@@ -385,7 +417,8 @@ function guestsGroup() {
           field('Saludo propio (opcional)', gp + 'greeting', { placeholder: cfg.sections.header.greeting || 'Querida Laura' }),
           field('Cupos (opcional)', gp + 'seats', { type: 'number', min: 0, max: 50, placeholder: 'ej. 2' })),
         imageField('Imagen propia (opcional)', gp + 'image', { help: 'Es la que se ve al compartir su enlace en WhatsApp (y la imagen principal si no hay video).' }),
-        fileField('Video propio (opcional)', gp + 'video', { accept: 'video/mp4,video/webm', maxMB: 60, help: 'Por ejemplo, el video con su nombre. Se presenta igual que el video general.' }),
+        fileField('Video propio (opcional)', gp + 'video', { accept: 'video/*', maxMB: 600, help: 'Por ejemplo, el video con su nombre. Se presenta igual que el video general.',
+          onPoster: p => { if (!g.image) g.image = p; } }),
         field('Mensaje propio (opcional)', gp + 'message', { type: 'textarea', rows: 3, placeholder: 'Vacío = el mensaje general' }),
         h('label', { class: 'field' }, h('span', null, 'Enlace corto'),
           h('input', { type: 'text', value: g.slug, oninput: e => { g.slug = e.target.value; }, onchange: () => { fixSlugs(guests); changed({ rebuild: true }); } })),
@@ -395,14 +428,13 @@ function guestsGroup() {
 
   return group('guests', '👥', `Invitados y enlaces (${guests.length})`, [
     h('p', { class: 'note' }, 'Cada invitado tiene su propio enlace con su nombre en el sobre. Opcional por invitado: imagen (también la de la vista previa en WhatsApp), saludo, mensaje y cupos. Lo que dejes vacío usa lo general.'),
-    field('Dirección donde se publica la invitación', 'meta.url', { type: 'url', placeholder: 'https://invitaciones.cania.app', help: 'Con ella se arman los enlaces y la imagen de vista previa.', rebuild: false }),
     bulk, h('button', { class: 'btn primary', type: 'button', onclick: addBulk }, '+ Agregar invitados'),
     h('div', { class: 'list' }, cards),
     guests.length > 0 && h('div', { class: 'guest-actions' },
       h('button', { class: 'btn sm', type: 'button', onclick: () => copy(guests.map(g => `${g.name}: ${guestLink(g)}`).join('\n'), 'Todos los enlaces copiados') }, '📋 Copiar todos los enlaces'),
       h('button', { class: 'btn sm', type: 'button', onclick: () => download('enlaces-invitados.csv', '﻿Nombre;WhatsApp;Cupos;Enlace\n' + guests.map(g => [g.name, g.phone || '', g.seats || '', guestLink(g)].map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, '⬇️ Descargar lista (Excel)')),
     field('Mensaje para enviar el enlace', 'share.message', { type: 'textarea', rows: 2, help: '{nombre} y {enlace} se reemplazan solos.' }),
-    hint('Para quien no esté en la lista: agrega ?para=Nombre al final de la dirección (ej. …/?para=Ana%20Ruiz).'),
+    hint(`Para quien no esté en la lista: ${eventLink()}?para=Nombre (ej. ?para=Ana%20Ruiz).`),
   ]);
 }
 
@@ -416,9 +448,26 @@ function shareGroup() {
 
 /* ---------- Layout ---------- */
 
+function basicsGroup() {
+  const slugIn = h('input', { type: 'text', value: ev.slug, 'aria-label': 'Dirección', onchange: e => saveNow({ slug: e.target.value }) });
+  return group('basics', '💌', 'Nombre y dirección', [
+    h('label', { class: 'field' }, h('span', null, 'Nombre de la invitación (solo lo ves tú)'),
+      h('input', { type: 'text', value: ev.title, maxlength: 120, oninput: e => { ev.title = e.target.value; saveDraft(); } })),
+    h('label', { class: 'field' }, h('span', null, 'Dirección'), h('div', { class: 'slug-row' }, h('span', { class: 'muted' }, `${location.host}/`), slugIn)),
+    hint('Solo letras, números y guiones. Si la cambias, los enlaces que ya enviaste dejan de funcionar.'),
+    h('div', { class: 'guest-actions' },
+      h('a', { class: 'btn sm primary', href: eventLink(), target: '_blank', rel: 'noopener' }, '↗ Abrir invitación'),
+      h('button', { class: 'btn sm', type: 'button', onclick: () => copy(eventLink(), 'Enlace copiado') }, '📋 Copiar enlace general')),
+  ]);
+}
+
+async function copy(text, msg = 'Copiado') {
+  if (await copyText(text)) toast(msg); else prompt('Copia el texto:', text);
+}
+
 function renderPanel() {
   const y = panel.scrollTop;
-  panel.replaceChildren(designGroup(), openingGroup(), eventGroup(), ...sectionGroups(), musicGroup(), guestsGroup(), shareGroup());
+  panel.replaceChildren(basicsGroup(), designGroup(), openingGroup(), eventGroup(), ...sectionGroups(), musicGroup(), guestsGroup(), shareGroup());
   panel.scrollTop = y;
   renderBar();
 }
@@ -433,47 +482,15 @@ function renderBar() {
 }
 
 function renderActions() {
-  const file = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
-  file.onchange = async () => {
-    try {
-      cfg = normalize(JSON.parse(await file.files[0].text()));
-      fixSlugs(cfg.guests);
-      changed({ rebuild: true }); sendPreview(true);
-      toast('Configuración cargada');
-    } catch { toast('Ese archivo no es un config.json válido'); }
-    file.value = '';
-  };
   $('#actions').replaceChildren(
-    h('button', { class: 'btn', type: 'button', onclick: () => file.click() }, '📂 Abrir config.json'), file,
-    h('button', { class: 'btn primary', type: 'button', onclick: saveFile }, '💾 Guardar config.json'),
-    h('select', { class: 'btn', 'aria-label': 'Empezar de un ejemplo', onchange: e => { const v = e.target.value; e.target.value = ''; if (v) resetExample(v); } },
-      h('option', { value: '' }, '↺ Empezar de un ejemplo…'),
-      EXAMPLES.map(([file, label]) => h('option', { value: file }, label))),
+    h('span', { id: 'saveState', class: 'save-state ok' }, 'Guardado ✓'),
+    h('a', { class: 'btn', href: '/panel' }, '← Mis invitaciones'),
+    h('button', { class: 'btn', type: 'button', onclick: exportFile, title: 'Descargar una copia de seguridad' }, '⬇️ Copia'),
   );
 }
 
-function saveFile() {
-  fixSlugs(cfg.guests);
-  const text = JSON.stringify(cfg, null, 2);
-  download('config.json', text);
-  const mb = text.length / 1048576;
-  toast(mb > 15 ? `Guardado (${mb.toFixed(1)} MB). Es pesado: usa imágenes más livianas o la música como enlace.` : 'config.json descargado', 4000);
-}
-
-const EXAMPLES = [['config.json', 'La invitación publicada'], ['ejemplos/grado.json', 'Fiesta de grado (azul y dorado)'], ['ejemplos/prom.json', 'Prom botánico con video']];
-
-async function resetExample(file) {
-  if (!confirm('¿Descartar tus cambios y cargar ese ejemplo? (Guarda antes tu config.json si lo necesitas)')) return;
-  cfg = await fetchConfig(file);
-  previewAs = '';
-  changed({ rebuild: true }); sendPreview(true);
-}
-
-async function fetchConfig(file = 'config.json') {
-  const res = await fetch(new URL(file, SITE), { cache: 'no-cache' });
-  const c = normalize(res.ok ? await res.json() : {});
-  fixSlugs(c.guests);
-  return c;
+function exportFile() {
+  download(`${ev.slug || 'invitacion'}.json`, JSON.stringify(cfg, null, 2));
 }
 
 /* Phone frame scaled to fit the available space. */
@@ -491,13 +508,16 @@ addEventListener('message', e => {
 });
 
 async function boot() {
-  const draft = await draftGet('cfg');
-  cfg = draft ? normalize(draft) : await fetchConfig();
+  let data;
+  try { data = await api(`/api/events/${EVENT_ID}`); }
+  catch (e) { panel.replaceChildren(h('p', { class: 'pad' }, e.message, ' ', h('a', { href: '/panel' }, 'Volver al panel'))); return; }
+  ev = { title: data.title, slug: data.slug };
+  cfg = normalize(data.config);
   fixSlugs(cfg.guests);
-  if (draft) toast('Recuperé tu último borrador de este navegador');
+  document.title = `${ev.title} · Editor`;
   renderActions();
   renderPanel();
-  frame.src = new URL('index.html?preview=1', SITE).href;
+  frame.src = '/_preview/?preview=1';
   $('#fab').onclick = () => { document.body.classList.add('show-preview'); fitPhone(); };
   new ResizeObserver(fitPhone).observe($('#phoneBox'));
   fitPhone();

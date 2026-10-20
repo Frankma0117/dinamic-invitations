@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Prom · Una tarde para celebrar",
+    "description": "Gracias por ser parte de nuestro camino. Toca para abrir tu invitación.",
+    "image": "",
+    "url": ""
+  },
+  "guest": {
+    "param": "para",
+    "fallback": "Para ti",
+    "seatsText": "Pase válido para {cupos} persona(s)"
+  },
+  "guests": [
+    {
+      "slug": "carolina-arevalo",
+      "name": "Carolina Arévalo",
+      "phone": "",
+      "greeting": "Querida tutora",
+      "message": "",
+      "image": "",
+      "video": "",
+      "seats": ""
+    }
+  ],
+  "share": {
+    "message": "Hola {nombre} 💌 Le compartimos su invitación a nuestro Prom: {enlace}"
+  },
+  "event": {
+    "name": "nuestro Prom",
+    "date": "2026-11-19",
+    "time": "17:00",
+    "endTime": "",
+    "tz": "-05:00",
+    "venue": "Casa de la señora Nancy González",
+    "address": ""
+  },
+  "opening": {
+    "style": "envelope",
+    "hint": "Toca para abrir",
+    "seal": {
+      "type": "icon",
+      "text": "",
+      "icon": "heart"
+    },
+    "confetti": false
+  },
+  "theme": {
+    "preset": "botanico",
+    "primary": "",
+    "secondary": "",
+    "fontTitle": "",
+    "fontBody": "",
+    "fontScript": "",
+    "texture": "",
+    "particles": ""
+  },
+  "music": {
+    "enabled": false,
+    "src": "",
+    "title": "",
+    "volume": 0.6
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Estás invitada a nuestro",
+      "title": "Prom",
+      "names": "Una tarde para celebrar"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Nos encantaría que nos acompañara en una tarde mágica, llena de elegancia, alegría y momentos inolvidables. Su presencia hará que esta ocasión sea aún más especial. Gracias por su dedicación, su paciencia y por dejar una huella tan valiosa en nuestra formación."
+    },
+    "media": {
+      "enabled": true,
+      "kind": "video",
+      "image": {
+        "src": "",
+        "alt": "",
+        "effect": "none"
+      },
+      "video": {
+        "src": "",
+        "url": "",
+        "poster": "",
+        "play": "button",
+        "intro": true
+      }
+    },
+    "when": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true,
+      "title": "Faltan",
+      "doneText": "¡Hoy es el gran día!"
+    },
+    "location": {
+      "enabled": false,
+      "title": "Ubicación",
+      "mapsUrl": "",
+      "embed": true,
+      "buttonText": "Cómo llegar"
+    },
+    "dresscode": {
+      "enabled": true,
+      "title": "Dress code",
+      "text": "Formal (negro o blanco)",
+      "colors": [
+        "#141414",
+        "#ffffff"
+      ]
+    },
+    "itinerary": {
+      "enabled": false,
+      "title": "Itinerario",
+      "items": []
+    },
+    "gallery": {
+      "enabled": false,
+      "title": "Galería",
+      "images": []
+    },
+    "rsvp": {
+      "enabled": true,
+      "title": "Confirme su asistencia",
+      "text": "",
+      "phone": "573229457553",
+      "deadline": "",
+      "twoButtons": true,
+      "yesLabel": "Asistiré",
+      "noLabel": "No podré asistir",
+      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}. 💚",
+      "noMessage": "Hola, soy {nombre}. Lamentablemente no podré asistir a {evento}. ¡Gracias por la invitación!"
+    },
+    "calendar": {
+      "enabled": true,
+      "title": "Guarde la fecha"
+    },
+    "closing": {
+      "enabled": true,
+      "text": "Será un honor compartir esta tarde con usted.\nGracias por todo.",
+      "signature": "Grado Décimo"
+    }
+  }
+}

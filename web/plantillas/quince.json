@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "XV Años · Valentina",
+    "description": "Toca para abrir tu invitación.",
+    "image": ""
+  },
+  "guests": [],
+  "event": {
+    "tz": "-05:00",
+    "endTime": "",
+    "name": "mis quince años",
+    "date": "2027-02-13",
+    "time": "19:00",
+    "venue": "Nombre del salón",
+    "address": "Dirección del salón"
+  },
+  "opening": {
+    "style": "curtain",
+    "seal": {
+      "type": "icon",
+      "icon": "crown"
+    },
+    "confetti": true,
+    "hint": "Toca para abrir"
+  },
+  "theme": {
+    "preset": "gala"
+  },
+  "sections": {
+    "header": {
+      "enabled": true,
+      "greeting": "Te invito a celebrar mis",
+      "title": "XV Años",
+      "names": "Valentina"
+    },
+    "message": {
+      "enabled": true,
+      "text": "Hay momentos inolvidables que se guardan en el corazón para siempre. Por eso quiero que compartas conmigo esta noche tan especial."
+    },
+    "media": {
+      "enabled": false
+    },
+    "closing": {
+      "enabled": true,
+      "text": "¡Te espero para brillar juntos!",
+      "signature": "Valentina"
+    },
+    "rsvp": {
+      "enabled": true,
+      "phone": "",
+      "twoButtons": true
+    },
+    "calendar": {
+      "enabled": true
+    },
+    "countdown": {
+      "enabled": true
+    },
+    "location": {
+      "enabled": true
+    },
+    "dresscode": {
+      "enabled": true,
+      "title": "Vestimenta",
+      "text": "Gala",
+      "colors": [
+        "#000000",
+        "#d4af37"
+      ]
+    }
+  }
+}
