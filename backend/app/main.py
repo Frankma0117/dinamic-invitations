@@ -150,7 +150,10 @@ def get_event(event_id: str):
 
 @app.put("/api/events/{event_id}", dependencies=admin)
 def save_event(event_id: str, body: dict = Body(...)):
-    _event(event_id)
+    current = _event(event_id)
+    base = body.get("base")                      # updated_at the editor started from: never overwrite a newer version
+    if base is None or abs(float(base) - float(current.get("updated_at", 0))) > 1e-3:
+        raise HTTPException(409, "Esta invitación se cambió en otra ventana. Recarga para ver la última versión.")
     config = body.get("config")
     if config is not None and not isinstance(config, dict):
         raise HTTPException(400, "Configuración inválida")

@@ -72,16 +72,34 @@ const saveNow = (extra = {}) => {
   setStatus('Guardando…', 'busy');
   saving = saving.then(async () => {
     try {
-      const r = await api(`/api/events/${EVENT_ID}`, { method: 'PUT', body: { config: cfg, title: ev.title, ...extra } });
+      const r = await api(`/api/events/${EVENT_ID}`, { method: 'PUT', body: { config: cfg, title: ev.title, base: ev.updated, ...extra } });
       const slugChanged = r.slug !== ev.slug;
       ev.slug = r.slug;
+      ev.updated = r.updated_at;
       setStatus('Guardado', 'ok');
       if (slugChanged) { renderTop(); render(); }
-    } catch (e) { setStatus('No se guardó: ' + e.message, 'err'); }
+    } catch (e) {
+      if (e.status === 409) { stale(); return; }
+      setStatus('No se guardó: ' + e.message, 'err');
+    }
   });
   return saving;
 };
-const saveSoon = debounce(() => saveNow(), 800);
+const saveSoon = debounce(() => { if (!isStale) saveNow(); }, 800);
+
+// Another tab (or a change on the server) saved a newer version: stop saving here and offer to reload.
+let isStale = false;
+function stale() {
+  isStale = true;
+  setStatus('Hay una versión más nueva', 'err');
+  const d = h('dialog', null, h('div', { class: 'dlg' },
+    h('h2', null, 'Hay una versión más nueva'),
+    h('p', { class: 'muted', style: { margin: 0 } }, 'Esta invitación se guardó desde otra ventana o pestaña. Para no perder esos cambios, recarga y sigue editando desde la última versión.'),
+    h('div', { style: { display: 'flex', gap: '8px', 'justify-content': 'flex-end' } },
+      h('button', { class: 'btn primary', type: 'button', onclick: () => location.reload() }, 'Recargar ahora'))));
+  document.body.append(d);
+  d.showModal();
+}
 addEventListener('beforeunload', e => { if ($('#saveState').classList.contains('busy') || uploads.size) e.preventDefault(); });
 
 const sendPreview = debounce((replay = false) => {
@@ -775,7 +793,7 @@ async function boot() {
   let data;
   try { data = await api(`/api/events/${EVENT_ID}`); }
   catch (e) { panel.replaceChildren(h('p', null, e.message, ' ', h('a', { href: '/panel' }, 'Volver al panel'))); return; }
-  ev = { title: data.title, slug: data.slug };
+  ev = { title: data.title, slug: data.slug, updated: data.updated_at };
   cfg = normalize(data.config);
   fixSlugs(cfg.guests);
   document.title = `${ev.title} · Editor`;

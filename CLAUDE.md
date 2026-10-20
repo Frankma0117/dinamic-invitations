@@ -61,6 +61,11 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       ("invitado(a)", invitada, querido, tutor(a)…, "Estás"→"Están", "te esperamos"→"los esperamos" para grupos);
       saludo y frase propios por invitado; botón "✏️ Personalizar" en cada fila. Arreglo: `setPath` reemplazaba la
       lista de invitados por un objeto al editar un campo de un invitado; `normalize()` y el servidor lo reparan.
+- [x] 2026-10-21: WhatsApp: sin emojis "nuevos" (💌 llegaba como � en WhatsApp de PC); símbolos seguros del BMP
+      (`SAFE_SYMBOLS`: ✨ ✉ ♥ ★…) con botones para insertarlos; enlaces con `api.whatsapp.com/send` (`waLink`).
+      `guests[].callName` ("Señor Rector") = {nombre} en el mensaje. **Versiones**: el editor manda `base` (updated_at)
+      y el servidor responde 409 si hay una versión más nueva (otra pestaña) → diálogo "Recargar". Ojo al editar datos
+      directo en el servidor: una pestaña abierta podía pisarlos (pasó con el mensaje de Manuel).
 - [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 
