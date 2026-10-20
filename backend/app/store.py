@@ -137,9 +137,10 @@ def delete(event_id: str) -> None:
         p = _path(event_id)
         if p and p.exists():
             p.unlink()
-        folder = MEDIA_DIR / event_id
-        if _path(event_id) and folder.exists() and folder.parent == MEDIA_DIR:   # never outside data/media
-            shutil.rmtree(folder)
+        for base in (MEDIA_DIR, MEDIA_DIR.parent / "og"):     # its files and its preview images
+            folder = base / event_id
+            if _path(event_id) and folder.exists() and folder.parent == base:   # never outside those folders
+                shutil.rmtree(folder)
 
 
 def summary(ev: dict) -> dict:

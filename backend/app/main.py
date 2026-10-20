@@ -12,7 +12,7 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, media, pages, store
+from . import auth, media, ogimage, pages, store
 from .settings import CHUNK_MAX, MEDIA_DIR, RESERVED, WEB_DIR
 
 app = FastAPI(title="Invitaciones", docs_url=None, redoc_url=None, openapi_url=None)
@@ -154,6 +154,8 @@ def save_event(event_id: str, body: dict = Body(...)):
     config = body.get("config")
     if config is not None and not isinstance(config, dict):
         raise HTTPException(400, "Configuración inválida")
+    if config is not None and isinstance(config.get("guests"), dict):      # a list that arrived as {"0": …}
+        config["guests"] = list(config["guests"].values())
     if config is not None and len(json.dumps(config)) > 3_000_000:
         raise HTTPException(413, "La configuración es demasiado grande (¿una imagen pegada como texto?)")
     ev = store.save(event_id, config=config, title=body.get("title"), slug=body.get("slug"))
@@ -209,6 +211,19 @@ def media_file(event_id: str, file: str):
     return FileResponse(path, headers={"Cache-Control": "public, max-age=2592000, immutable"})
 
 
+@app.get("/og/{slug}/{key}.jpg")
+def og_image(slug: str, key: str):
+    """Link preview: the envelope with the guest's name (generated once per change, then cached)."""
+    ev = store.by_slug(slug)
+    if not ev:
+        raise HTTPException(404)
+    guest = None if key == "_" else _guest(ev, key)
+    if key != "_" and not guest:
+        raise HTTPException(404)
+    path = ogimage.cached(ev["id"], ev["config"], guest)
+    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/api/i/{slug}")
 def public_config(slug: str):
     ev = store.by_slug(slug)
@@ -218,7 +233,9 @@ def public_config(slug: str):
 
 
 def _guest(ev: dict, guest_slug: str):
-    return next((g for g in (ev["config"].get("guests") or []) if g.get("slug") == guest_slug), None)
+    guests = ev["config"].get("guests") or []
+    guests = list(guests.values()) if isinstance(guests, dict) else guests
+    return next((g for g in guests if isinstance(g, dict) and g.get("slug") == guest_slug), None)
 
 
 @app.get("/{slug}")

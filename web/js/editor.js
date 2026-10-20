@@ -1,7 +1,7 @@
 // Editor: tabs on the left, the form in the middle (its own scroll), the phone preview on the right.
 // Everything is saved on the server by itself (/api/events/<id>); files are uploaded in pieces (api.js).
 import { h, fillTemplate } from './util.js';
-import { normalize, getPath, setPath, fixSlugs, slugify } from './config.js';
+import { normalize, getPath, setPath, fixSlugs, slugify, genderize } from './config.js';
 import { THEMES, THEME_KEYS, FONTS, TEXTURES, PARTICLES, resolveTheme, fontStack, loadFonts } from './themes.js';
 import { SEAL_ICONS, sealIcon } from './decor.js';
 import { compressImage, previewImage } from './image.js';
@@ -339,6 +339,15 @@ const TZ = [
   ['+01:00', 'España en invierno (UTC+1)'], ['+02:00', 'España en verano (UTC+2)'],
 ];
 
+const GENDERS = [['f', 'Mujer'], ['m', 'Hombre'], ['p', 'Grupo'], ['', 'Sin especificar']];
+const GENDER_ICON = { f: '♀', m: '♂', p: '👥' };
+
+/** Live sample of how a text reads for a woman, a man and a group. */
+function genderExamples(text) {
+  if (!text || !['f', 'm', 'p'].some(g => genderize(text, g) !== text)) return null;
+  return h('p', { class: 'hint gx' }, ['f', 'm', 'p'].flatMap(g => [h('b', null, `${GENDER_ICON[g]} `), genderize(text, g), '   ']));
+}
+
 function contentTab() {
   const S = 'sections.';
   const sec = cfg.sections;
@@ -364,10 +373,12 @@ function contentTab() {
       h('div', { class: 'grid2' }, field('Zona horaria', 'event.tz', { type: 'select', options: TZ }),
         field('Nombre para los mensajes', 'event.name', { placeholder: 'nuestro Prom', help: '"confirmo mi asistencia a …"' }))),
     card({ id: 'header', icon: '✨', title: 'Encabezado', sub: 'Frase, título, subtítulo y saludo con el nombre', collapsible: true, toggle: S + 'header.enabled' },
-      field('Frase arriba del título', S + 'header.pretitle', { placeholder: 'Estás invitada a nuestro' }),
+      field('Frase arriba del título', S + 'header.pretitle', { placeholder: 'Estás invitado(a) a nuestro', help: 'Se ajusta sola a cada invitado: escribe "invitado(a)", "querido(a)", "tutor(a)"…' }),
+      genderExamples(cfg.sections.header.pretitle),
       field('Título', S + 'header.title', { placeholder: 'PROM' }),
       field('Subtítulo', S + 'header.names', { placeholder: 'Una tarde para celebrar' }),
-      field('Saludo antes del nombre', S + 'header.greeting', { placeholder: 'Querida tutora', help: 'Cada invitado puede tener el suyo (pestaña Invitados).' }),
+      field('Saludo antes del nombre', S + 'header.greeting', { placeholder: 'Querido(a) docente', help: 'Cada invitado puede tener el suyo: "Querido rector", "Querida tutora"… (pestaña Invitados).' }),
+      genderExamples(cfg.sections.header.greeting),
       h('div', { class: 'field' }, h('span', null, 'El nombre del invitado va'), choices(S + 'header.guestPosition', [['after', 'Debajo del título'], ['before', 'Arriba del título']]))),
     card({ id: 'message', icon: '📝', title: 'Mensaje', collapsible: true, toggle: S + 'message.enabled' },
       field('Mensaje', S + 'message.text', { type: 'textarea', rows: 6, help: 'Deja una línea en blanco para separar párrafos. Cada invitado puede tener el suyo.' })),
@@ -478,7 +489,7 @@ const prettyName = base => {
   const s = base.replace(/[-_.]+/g, ' ').replace(/\s+/g, ' ').trim();
   return s === s.toLowerCase() ? s.replace(/\b\p{L}/gu, c => c.toUpperCase()) : s;
 };
-const newGuest = name => ({ slug: '', name, phone: '', greeting: '', message: '', image: '', video: '', seats: '' });
+const newGuest = name => ({ slug: '', name, gender: '', phone: '', greeting: '', pretitle: '', message: '', image: '', video: '', seats: '' });
 let bulk = null;                                         // { done, total, name } while uploading several videos
 
 async function bulkVideos(files) {
@@ -511,7 +522,7 @@ function guestRow(g, i) {
   const gp = `guests.${i}.`;
   const key = keyOf(g);
   const st = uploads.get(key);
-  const share = fillTemplate(cfg.share.message, { nombre: g.name, enlace: guestLink(g) });
+  const share = genderize(fillTemplate(cfg.share.message, { nombre: g.name, enlace: guestLink(g) }), g.gender);
   const input = h('input', { type: 'file', accept: 'video/*', hidden: true });
   input.onchange = () => {
     const f = input.files[0]; input.value = '';
@@ -529,9 +540,12 @@ function guestRow(g, i) {
           g.video && h('button', { class: 'btn sm danger', type: 'button', onclick: () => { g.video = ''; changed({ rebuild: true }); } }, 'Quitar'))),
       field('Cupos (opcional)', gp + 'seats', { type: 'number', min: 0, max: 50, placeholder: 'ej. 2' })),
     mediaField('Imagen al compartir en WhatsApp', gp + 'image', { help: 'Se llena sola con un cuadro del video; puedes cambiarla.' }),
+    h('p', { class: 'label' }, `Personalizar a ${g.name || 'este invitado'}`),
+    h('div', { class: 'field' }, h('span', null, 'Trato (ajusta invitado/invitada, querido/querida…)'), choices(gp + 'gender', GENDERS)),
     h('div', { class: 'grid2' },
-      field('Saludo propio', gp + 'greeting', { placeholder: cfg.sections.header.greeting || 'Querida tutora' }),
-      field('Su WhatsApp (opcional)', gp + 'phone', { type: 'tel', placeholder: '573001234567', help: 'Para enviarle el enlace directo.' })),
+      field('Saludo propio', gp + 'greeting', { placeholder: genderize(cfg.sections.header.greeting, g.gender) || 'Querido rector, Querida tutora…' }),
+      field('Frase arriba del título (propia)', gp + 'pretitle', { placeholder: genderize(cfg.sections.header.pretitle, g.gender) || 'Estás invitado a nuestro' })),
+    field('Su WhatsApp (opcional)', gp + 'phone', { type: 'tel', placeholder: '573001234567', help: 'Para enviarle el enlace directo.' }),
     field('Mensaje propio (opcional)', gp + 'message', { type: 'textarea', rows: 3, placeholder: 'Vacío = el mensaje general' }),
     h('label', { class: 'field' }, h('span', null, 'Enlace'), h('div', { style: { display: 'flex', 'align-items': 'center', gap: '4px' } },
       h('span', { class: 'muted', style: { 'white-space': 'nowrap' } }, `${location.host}/${ev.slug}/`),
@@ -548,13 +562,17 @@ function guestRow(g, i) {
         h('input', { class: 'g-name', type: 'text', value: g.name, 'aria-label': 'Nombre', placeholder: 'Nombre del invitado',
           oninput: e => { g.name = e.target.value; changed(); },
           onchange: () => { g.slug = slugify(g.name); fixSlugs(cfg.guests); changed({ rebuild: true }); } }),
-        h('div', { class: 'g-meta' }, videoChip, Number(g.seats) > 0 && h('span', { class: 'chip' }, `👥 ${g.seats}`),
+        h('div', { class: 'g-meta' },
+          h('button', { class: `chip gender${g.gender ? ' set' : ''}`, type: 'button', title: 'Trato: toca para cambiar',
+            onclick: () => { const order = ['', 'f', 'm', 'p']; g.gender = order[(order.indexOf(g.gender || '') + 1) % order.length]; changed({ rebuild: true }); } },
+          g.gender ? `${GENDER_ICON[g.gender]} ${GENDERS.find(x => x[0] === g.gender)[1]}` : 'Trato ▾'),
+          videoChip, Number(g.seats) > 0 && h('span', { class: 'chip' }, `👥 ${g.seats}`),
           h('span', { class: 'g-link' }, shortLink(guestLink(g))))),
       h('div', { class: 'g-actions' },
         h('button', { class: 'btn sm', type: 'button', title: 'Copiar su enlace', onclick: () => copy(guestLink(g), `Enlace de ${g.name} copiado`) }, svg(I.copy), 'Copiar'),
         h('a', { class: 'btn sm wa', href: `https://wa.me/${(g.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(share)}`, target: '_blank', rel: 'noopener', title: 'Enviar por WhatsApp' }, 'WhatsApp'),
-        h('button', { class: 'btn icon', type: 'button', title: isOpen ? 'Cerrar' : 'Más opciones', 'aria-expanded': String(isOpen),
-          onclick: () => { isOpen ? open.delete(id) : open.add(id); render(); } }, svg(isOpen ? I.chev : I.more)))),
+        h('button', { class: `btn sm${isOpen ? ' primary' : ''}`, type: 'button', 'aria-expanded': String(isOpen),
+          onclick: () => { isOpen ? open.delete(id) : open.add(id); render(); } }, isOpen ? 'Listo ✓' : '✏️ Personalizar'))),
     st && h('div', { class: `progress${st.phase === 'processing' ? ' indeterminate' : ''}` }, h('i', { style: { width: `${Math.round(st.frac * 100)}%` } })),
     input, more);
 }
@@ -572,7 +590,7 @@ function guestsTab() {
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); bulkVideos(e.dataTransfer.files); });
   const names = h('textarea', { rows: 2, placeholder: 'O escribe nombres, uno por línea' });
-  return page('Invitados', 'Cada invitado tiene su enlace con su nombre en el sobre y, si quieres, su propio video. Copia el enlace o envíalo por WhatsApp.',
+  return page('Invitados', 'Cada invitado tiene su enlace con su nombre en el sobre. Con "✏️ Personalizar" le pones su trato (invitado/invitada), su saludo (Querido rector, Querida tutora…), su video, su mensaje y más.',
     h('div', { class: 'stats', style: { 'margin-bottom': '14px' } },
       h('span', { class: 'stat' }, `👥 ${guests.length} invitado${guests.length === 1 ? '' : 's'}`),
       guests.length > 0 && h('span', { class: `stat ${withVideo === guests.length ? 'ok' : ''}` }, `🎬 ${withVideo} con video`),
@@ -600,11 +618,24 @@ function guestsTab() {
   );
 }
 
-function waPreview(title, desc, img) {
-  return h('div', { class: 'wa-card' }, img ? h('img', { src: img, alt: '' }) : h('img', { alt: '' }),
-    h('div', null, h('b', null, title || 'Invitación'), h('span', null, desc || 'Toca para abrir tu invitación.'), h('small', null, location.host)));
+/** How the link looks in WhatsApp — the same texts and image the server writes in the page. */
+function waPreview(guest = null) {
+  const m = cfg.meta, hd = cfg.sections.header;
+  const event = [hd.title, hd.names].filter(Boolean).join(' · ') || m.title || ev.title;
+  const title = guest ? `💌 ${guest.name}, tienes una invitación` : '💌 Tienes una invitación';
+  const img = h('img', { alt: '' });
+  if ((m.previewStyle || 'envelope') === 'envelope') {
+    // drawn by the server from the saved invitation: wait for the save in progress
+    saving.then(() => { img.src = `/og/${ev.slug}/${guest ? guest.slug : '_'}.jpg?t=${Date.now()}`; });
+  } else {
+    const own = (guest && guest.image) || m.image;
+    if (own) img.src = own;
+  }
+  return h('div', { class: 'wa-card' }, img,
+    h('div', null, h('b', null, title), h('span', null, `${event} · ${m.description || 'Toca para abrirla'}`), h('small', null, location.host)));
 }
 
+let previewGuest = '';
 function shareTab() {
   const m = cfg.meta;
   const slugIn = h('input', { type: 'text', value: ev.slug, 'aria-label': 'Dirección', onchange: e => saveNow({ slug: e.target.value }) });
@@ -618,11 +649,17 @@ function shareTab() {
         h('button', { class: 'btn sm', type: 'button', onclick: () => setTab('guests') }, '👥 Enlaces por invitado')),
       h('label', { class: 'field' }, h('span', null, 'Dirección'), h('div', { style: { display: 'flex', 'align-items': 'center', gap: '4px' } }, h('span', { class: 'muted' }, `${location.host}/`), slugIn)),
       hint('Solo letras, números y guiones. Si la cambias, los enlaces que ya enviaste dejan de funcionar.')),
-    card({ icon: '💬', title: 'Cómo se ve en WhatsApp' },
-      waPreview(m.title || cfg.sections.header.title, m.description, m.image),
-      field('Título', 'meta.title', { placeholder: 'Prom · Una tarde para celebrar' }),
-      field('Descripción', 'meta.description', { type: 'textarea', rows: 2 }),
-      mediaField('Imagen (se recorta a 1200×630)', 'meta.image', { og: true, help: 'En los enlaces de cada invitado se usa su propia imagen si la tiene.' })),
+    card({ icon: '💬', title: 'Cómo se ve en WhatsApp', sub: 'Al pegar el enlace en un chat' },
+      cfg.guests.length > 0 && h('select', { 'aria-label': 'Ver la vista previa de', onchange: e => { previewGuest = e.target.value; render(); } },
+        h('option', { value: '' }, 'Enlace general'),
+        cfg.guests.map(g => h('option', { value: g.slug, selected: previewGuest === g.slug }, `Enlace de ${g.name}`))),
+      waPreview(cfg.guests.find(g => g.slug === previewGuest) || null),
+      h('div', { class: 'field' }, h('span', null, 'Imagen'),
+        choices('meta.previewStyle', [['envelope', '✉️ Sobre con el nombre (recomendado)'], ['image', '🖼️ Imagen propia']])),
+      m.previewStyle === 'image'
+        ? mediaField('Imagen propia (se recorta a 1200×630)', 'meta.image', { og: true, help: 'En el enlace de cada invitado se usa su propia imagen si la tiene.' })
+        : hint('Se dibuja sola con los colores, la letra y el sello de tu invitación, y con el nombre de cada invitado.'),
+      field('Texto debajo (opcional)', 'meta.description', { placeholder: 'Toca para abrirla', help: 'El título dice "💌 Nombre, tienes una invitación" (o "💌 Tienes una invitación" en el enlace general).' })),
     card({ icon: '💾', title: 'Copia de seguridad' },
       h('div', null, h('button', { class: 'btn sm', type: 'button', onclick: () => download(`${ev.slug || 'invitacion'}.json`, JSON.stringify(cfg, null, 2)) }, '⬇️ Descargar copia (.json)'))),
   );
@@ -684,7 +721,7 @@ function shareDialog() {
     h('div', { style: { display: 'flex', gap: '8px', 'flex-wrap': 'wrap' } },
       h('a', { class: 'btn sm wa', href: `https://wa.me/?text=${encodeURIComponent(eventLink())}`, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
       h('a', { class: 'btn sm', href: eventLink(), target: '_blank', rel: 'noopener' }, svg(I.open), 'Abrir')),
-    waPreview(cfg.meta.title || cfg.sections.header.title, cfg.meta.description, cfg.meta.image),
+    waPreview(),
     cfg.guests.length > 0
       ? h('p', { class: 'note' }, `Tienes ${cfg.guests.length} invitado(s) con enlace propio. `, h('a', { href: '#', onclick: e => { e.preventDefault(); d.close(); setTab('guests'); } }, 'Ver y enviar sus enlaces →'))
       : h('p', { class: 'hint' }, 'Para enviar un enlace con el nombre de cada persona, agrégalos en la pestaña Invitados.')));

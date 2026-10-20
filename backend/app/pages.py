@@ -4,6 +4,7 @@ image of each link (general or per guest) are written into the page here, betwee
 import html
 import re
 
+from . import ogimage
 from .settings import BASE_URL, WEB_DIR
 
 _PREVIEWABLE = re.compile(r"\.(jpe?g|png|webp)(\?|$)", re.I)
@@ -28,10 +29,18 @@ def invitation_page(ev: dict | None, guest: dict | None = None) -> str:
         c = ev.get("config") or {}
         meta = c.get("meta") or {}
         header = (c.get("sections") or {}).get("header") or {}
-        base_title = meta.get("title") or header.get("title") or ev.get("title") or "Invitación"
-        title = f"{guest['name']} · {base_title}" if guest and guest.get("name") else base_title
-        desc = meta.get("description") or "Toca para abrir tu invitación."
-        img = guest.get("image") if guest and _PREVIEWABLE.search(guest.get("image") or "") else meta.get("image")
+        event = " · ".join(x for x in (header.get("title"), header.get("names")) if x) or meta.get("title") or ev.get("title") or "Invitación"
+        # It must read as an invitation in the chat: "💌 Carolina Arévalo, tienes una invitación".
+        if guest and guest.get("name"):
+            title = f"💌 {guest['name']}, tienes una invitación"
+        else:
+            title = "💌 Tienes una invitación"
+        desc = f"{event} · {meta.get('description') or 'Toca para abrirla'}"
+        if (meta.get("previewStyle") or "envelope") == "envelope":
+            img = f"{BASE_URL}/og/{ev['slug']}/{(guest or {}).get('slug') or '_'}.jpg?v={ogimage.version(c, guest)}"
+        else:
+            own = guest.get("image") if guest and _PREVIEWABLE.search(guest.get("image") or "") else meta.get("image")
+            img = _abs(own) if own and _PREVIEWABLE.search(own) else ""
         url = f"{BASE_URL}/{ev['slug']}/" + (f"{guest['slug']}/" if guest else "")
         e = lambda s: html.escape(str(s), quote=True)
         tags = [
@@ -44,8 +53,12 @@ def invitation_page(ev: dict | None, guest: dict | None = None) -> str:
             f'<meta property="og:title" content="{e(title)}">',
             f'<meta property="og:description" content="{e(desc)}">',
             f'<meta property="og:url" content="{e(url)}">',
-            img and _PREVIEWABLE.search(img) and f'<meta property="og:image" content="{e(_abs(img))}">',
-            img and _PREVIEWABLE.search(img) and '<meta name="twitter:card" content="summary_large_image">',
+            img and f'<meta property="og:image" content="{e(img)}">',
+            img and '<meta property="og:image:type" content="image/jpeg">',
+            img and '<meta property="og:image:width" content="1200">',
+            img and '<meta property="og:image:height" content="630">',
+            img and f'<meta property="og:image:alt" content="{e("Invitación: " + event)}">',
+            img and '<meta name="twitter:card" content="summary_large_image">',
             '<meta name="robots" content="noindex">',
         ]
     block = "<!-- og:start (generado por el servidor) -->\n" + "\n".join("  " + t for t in tags if t) + "\n  "

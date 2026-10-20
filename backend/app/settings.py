@@ -18,7 +18,7 @@ MAX_UPLOAD_MB = {"image": 25, "audio": 40, "video": 600}
 CHUNK_MAX = 4 * 1024 * 1024 + 1024          # the host nginx accepts 5 MB per request: files travel in 4 MB pieces
 
 # First path segment of an invitation (/<slug>/) can't be one of these.
-RESERVED = {"api", "panel", "css", "js", "assets", "media", "plantillas", "healthz", "favicon.ico", "robots.txt", "_preview", "admin", "login"}
+RESERVED = {"api", "panel", "css", "js", "assets", "media", "plantillas", "healthz", "favicon.ico", "robots.txt", "_preview", "admin", "login", "og"}
 
 for d in (EVENTS_DIR, MEDIA_DIR, TMP_DIR):
     d.mkdir(parents=True, exist_ok=True)

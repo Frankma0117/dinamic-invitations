@@ -1,0 +1,2 @@
+Great Vibes y Cormorant Garamond: SIL Open Font License 1.1 (https://openfontlicense.org).
+Se usan como respaldo para dibujar la imagen de vista previa (ogimage.py).

@@ -10,10 +10,12 @@ export const SECTION_LABELS = {
 
 export const DEFAULTS = {
   version: 1,
-  meta: { title: '', description: '', image: '', url: '' },        // Open Graph (vista previa al compartir)
+  // Vista previa al compartir. previewStyle: 'envelope' = el servidor dibuja un sobre con el nombre de cada invitado;
+  // 'image' = la imagen propia (meta.image o la del invitado).
+  meta: { title: '', description: '', image: '', url: '', previewStyle: 'envelope' },
   guest: { param: 'para', fallback: 'Para ti', seatsText: 'Pase válido para {cupos} persona(s)' },   // ?para=Laura%20Gómez
   // Invitados con enlace propio (/laura-gomez/): cada campo vacío usa el general.
-  // { slug, name, phone, greeting, message, image (imagen principal y de la vista previa en WhatsApp), video, seats }
+  // { slug, name, gender ('' | f | m | p = grupo), phone, greeting, pretitle, message, image, video, seats }
   guests: [],
   share: { message: 'Hola {nombre} 💌 Te comparto tu invitación: {enlace}' },   // texto al enviar el enlace por WhatsApp
   event: { name: '', date: '', time: '', endTime: '', tz: '-05:00', venue: '', address: '' },
@@ -71,7 +73,12 @@ export function normalize(cfg) {
   // Before 2026-10-20 the header had only "greeting", used as the line above the title.
   const hd = raw.sections?.header;
   if (hd && !('pretitle' in hd)) { hd.pretitle = hd.greeting || ''; hd.greeting = ''; hd.guestPosition = 'after'; }
-  return merge(DEFAULTS, raw);
+  const c = merge(DEFAULTS, raw);
+  // A list that arrived as an object ({"0": {...}, "1": {...}}) is turned back into a list.
+  for (const [obj, key] of [[c, 'guests'], [c.sections.itinerary, 'items'], [c.sections.gallery, 'images'], [c.sections.dresscode, 'colors']]) {
+    if (!Array.isArray(obj[key])) obj[key] = obj[key] && typeof obj[key] === 'object' ? Object.values(obj[key]) : [];
+  }
+  return c;
 }
 
 export async function loadConfig(url = 'config.json') {
@@ -87,7 +94,8 @@ export function getPath(obj, path) {
 export function setPath(obj, path, value) {
   const keys = path.split('.');
   let o = obj;
-  keys.slice(0, -1).forEach(k => { if (!isObj(o[k])) o[k] = {}; o = o[k]; });
+  // Lists stay lists: "guests.2.name" must change one guest, not replace the whole list.
+  keys.slice(0, -1).forEach(k => { if (o[k] == null || typeof o[k] !== 'object') o[k] = {}; o = o[k]; });
   o[keys.at(-1)] = value;
 }
 
@@ -112,13 +120,50 @@ export function fixSlugs(guests) {
   return guests;
 }
 
-/** The config as this guest sees it: their video, image, greeting and message replace the general ones. */
+/* ---------- Gender: one text, the right form for each guest ---------- */
+
+// Words that change with the guest: invitado/invitada/invitados, querido/querida…
+const GENDERED = /\b(invitad|querid|bienvenid|estimad|amad|apreciad|homenajead|esperad|honrad|consentid|admirad|respetad|recordad)([oa])(s?)\b/giu;
+
+/**
+ * Adjusts a text to the guest: f (mujer), m (hombre), p (grupo: familia, pareja). '' leaves it as written.
+ * "invitado(a)" / "invitada" → invitada · invitado · invitados; "tutor(a)" → tutora · tutor · tutores;
+ * for a group also "Estás" → "Están" and "te esperamos" → "los esperamos".
+ */
+export function genderize(text, gender) {
+  if (!text || !['f', 'm', 'p'].includes(gender)) return text;
+  const keepCase = (orig, s) => (orig === orig.toUpperCase() && orig !== orig.toLowerCase() ? s.toUpperCase() : s);
+  let t = String(text).replace(/(\p{L}+)\((a|as)\)/giu, (m, w) => {
+    if (gender === 'f') return /o$/i.test(w) ? w.slice(0, -1) + keepCase(w.slice(-1), 'a') : w + keepCase(w.slice(-1), 'a');
+    if (gender === 'p') return /[aeiou]$/i.test(w) ? w + keepCase(w.slice(-1), 's') : w + keepCase(w.slice(-1), 'es');
+    return w;
+  });
+  t = t.replace(GENDERED, (m, stem, v, s) => stem + keepCase(v, gender === 'f' ? 'a' : 'o') + (gender === 'p' ? keepCase(v, 's') : s));
+  if (gender === 'p') {
+    t = t.replace(/\b(E|e)stás\b/gu, (m, e) => `${e}stán`).replace(/\bESTÁS\b/gu, 'ESTÁN')
+      .replace(/\b(T|t)e esperamos\b/gu, (m, x) => `${x === 'T' ? 'L' : 'l'}os esperamos`).replace(/\bTE ESPERAMOS\b/gu, 'LOS ESPERAMOS');
+  }
+  return t;
+}
+
+/** The config as this guest sees it: their video, image, greeting and message replace the general ones,
+ *  and every text takes the right form for them (genderize). */
 export function forGuest(cfg, g) {
   if (!g) return cfg;
   const c = structuredClone(cfg);
   const sec = c.sections, media = sec.media;
   if (g.greeting) sec.header.greeting = g.greeting;
+  if (g.pretitle) sec.header.pretitle = g.pretitle;
   if (g.message) sec.message.text = g.message;
+  if (g.gender) {
+    const gz = t => genderize(t, g.gender);
+    for (const k of ['pretitle', 'greeting']) sec.header[k] = gz(sec.header[k]);
+    sec.message.text = gz(sec.message.text);
+    for (const k of ['title', 'text', 'signature']) sec.closing[k] = gz(sec.closing[k]);
+    sec.rsvp.text = gz(sec.rsvp.text);
+    const lt = c.opening.letter || {};
+    for (const k of ['title', 'subtitle', 'text']) lt[k] = gz(lt[k]);
+  }
   if (g.video) {
     // Their own video (e.g. one with their name): same presentation as the general one, another file.
     media.enabled = true;

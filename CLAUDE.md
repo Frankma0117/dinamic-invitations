@@ -53,6 +53,14 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       no espera: aviso breve de volver a ponerlo derecho y sigue. **Música durante el video** (`music.duringVideo`:
       `music` = suena la música y el video va en silencio —por defecto—, `video` = suena el video); la música se
       "desbloquea" en el toque del sobre (`music.prime()`) para que los celulares la dejen sonar después.
+- [x] 2026-10-21: **vista previa de WhatsApp como invitación** (`ogimage.py`, Pillow): sobre en los colores del tema,
+      sello y nombre del invitado a mano, "INVITACIÓN" arriba y el evento abajo; `/og/<slug>/<invitado|_>.jpg?v=<hash>`,
+      caché en `data/og/<id>/`; letras de Google Fonts en TTF (`data/fonts/`) con respaldo OFL en `backend/app/fonts/`.
+      Título "💌 Nombre, tienes una invitación". `meta.previewStyle` = envelope | image. Colores de estilos duplicados en
+      `ogimage.PRESETS` (mantener igual a `themes.js`). **Trato por invitado** (`guests[].gender` f/m/p) y `genderize()`
+      ("invitado(a)", invitada, querido, tutor(a)…, "Estás"→"Están", "te esperamos"→"los esperamos" para grupos);
+      saludo y frase propios por invitado; botón "✏️ Personalizar" en cada fila. Arreglo: `setPath` reemplazaba la
+      lista de invitados por un objeto al editar un campo de un invitado; `normalize()` y el servidor lo reparan.
 - [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 

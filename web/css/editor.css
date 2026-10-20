@@ -217,6 +217,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 600; background: var(--line-2); color: var(--muted); }
 .chip.ok { background: var(--ok-soft); color: var(--ok); }
 .chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.gender { border: 0; cursor: pointer; font: inherit; font-size: .74rem; font-weight: 600; }
+.chip.gender:not(.set) { background: var(--warn-soft); color: var(--warn); }
+.chip.gender.set { background: var(--accent-soft); color: var(--accent); }
+.hint.gx { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); white-space: pre-wrap; }
 .chip button { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .g-link { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .g-actions { display: flex; gap: 6px; align-items: center; }
@@ -244,6 +248,8 @@ dialog::backdrop { background: rgba(25, 28, 25, .45); backdrop-filter: blur(3px)
 .link-box input { flex: 1; font-size: .9rem; background: var(--surface-2); }
 .wa-card { overflow: hidden; border-radius: 12px; border: 1px solid #c9eeb8; max-width: 340px; }
 .wa-card img { display: block; width: 100%; aspect-ratio: 1.91; object-fit: cover; background: #dcd6cc; }
+.wa-card img:not([src]) { background: linear-gradient(90deg, #e6e0d6, #f1ece4, #e6e0d6); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
 .wa-card div { padding: 8px 10px 10px; background: #f0fbe8; }
 .wa-card b { display: block; font-size: .86rem; }
 .wa-card span { display: block; font-size: .76rem; color: #50624a; }
