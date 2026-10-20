@@ -14,9 +14,13 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
 ## Estado
 - [x] 2026-10-20: invitación (sobre / díptico / telón / sin animación), 12 secciones, 6 temas, partículas, música,
       editor con vista previa en vivo, invitados con enlace propio. Probado en local (Edge, móvil y escritorio).
-- [ ] Desplegar en el VPS (pendiente de confirmación de Manuel).
+- [x] 2026-10-20: desplegado en el VPS (repo `git@github.com:Frankma0117/dinamic-invitations.git`, `/opt/invitaciones`,
+      contenedor `invitaciones-web-1` en 127.0.0.1:5700, `.env` con SITE_URL). El editor queda público en `/editor/`
+      (no guarda nada en el servidor). **Pendiente de Manuel**: `sudo bash /opt/invitaciones/scripts/sudo-setup.sh
+      invitaciones.cania.app` (sitio nginx + HTTPS; pide su contraseña).
+- [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 
-## Infraestructura (prevista)
+## Infraestructura
 - VPS `manuel@169.58.79.154`, carpeta `/opt/invitaciones`, Docker Compose (nginx:alpine) en `127.0.0.1:5700`.
 - Dominio `invitaciones.cania.app` (DNS comodín de cania.app) → nginx del host, sitio `invitaciones-<dominio>` + certbot.
 - En el VPS viven otros proyectos (aula-interactiva 5690, content-assistant, cania-web, maniksero, canix):
