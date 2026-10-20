@@ -167,7 +167,7 @@
       "twoButtons": true,
       "yesLabel": "Asistiré",
       "noLabel": "No podré asistir",
-      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}. 🎓",
+      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}.",
       "noMessage": "Hola, soy {nombre}. Lamentablemente no podré asistir a {evento}. ¡Gracias por la invitación!"
     },
     "calendar": {

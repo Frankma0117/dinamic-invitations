@@ -633,7 +633,7 @@ function guestsTab() {
 function waPreview(guest = null) {
   const m = cfg.meta, hd = cfg.sections.header;
   const event = [hd.title, hd.names].filter(Boolean).join(' · ') || m.title || ev.title;
-  const title = guest ? `💌 ${guest.name}, tienes una invitación` : '💌 Tienes una invitación';
+  const title = guest ? `${guest.name}, tienes una invitación` : 'Tienes una invitación';
   const img = h('img', { alt: '' });
   if ((m.previewStyle || 'envelope') === 'envelope') {
     // drawn by the server from the saved invitation: wait for the save in progress
@@ -670,7 +670,7 @@ function shareTab() {
       m.previewStyle === 'image'
         ? mediaField('Imagen propia (se recorta a 1200×630)', 'meta.image', { og: true, help: 'En el enlace de cada invitado se usa su propia imagen si la tiene.' })
         : hint('Se dibuja sola con los colores, la letra y el sello de tu invitación, y con el nombre de cada invitado.'),
-      field('Texto debajo (opcional)', 'meta.description', { placeholder: 'Toca para abrirla', help: 'El título dice "💌 Nombre, tienes una invitación" (o "💌 Tienes una invitación" en el enlace general).' })),
+      field('Texto debajo (opcional)', 'meta.description', { placeholder: 'Toca para abrirla', help: 'El título dice "Nombre, tienes una invitación" (o "Tienes una invitación" en el enlace general).' })),
     card({ icon: '💾', title: 'Copia de seguridad' },
       h('div', null, h('button', { class: 'btn sm', type: 'button', onclick: () => download(`${ev.slug || 'invitacion'}.json`, JSON.stringify(cfg, null, 2)) }, '⬇️ Descargar copia (.json)'))),
   );

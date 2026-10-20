@@ -24,7 +24,7 @@
     }
   ],
   "share": {
-    "message": "Hola {nombre} 💌 Le compartimos su invitación a nuestro Prom: {enlace}"
+    "message": "Hola {nombre}, le compartimos su invitación a nuestro Prom: {enlace}"
   },
   "event": {
     "name": "nuestro Prom",
@@ -133,7 +133,7 @@
       "twoButtons": true,
       "yesLabel": "Asistiré",
       "noLabel": "No podré asistir",
-      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}. 💚",
+      "yesMessage": "Hola, soy {nombre} y confirmo mi asistencia a {evento}.",
       "noMessage": "Hola, soy {nombre}. Lamentablemente no podré asistir a {evento}. ¡Gracias por la invitación!"
     },
     "calendar": {

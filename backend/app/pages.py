@@ -30,11 +30,11 @@ def invitation_page(ev: dict | None, guest: dict | None = None) -> str:
         meta = c.get("meta") or {}
         header = (c.get("sections") or {}).get("header") or {}
         event = " · ".join(x for x in (header.get("title"), header.get("names")) if x) or meta.get("title") or ev.get("title") or "Invitación"
-        # It must read as an invitation in the chat: "💌 Carolina Arévalo, tienes una invitación".
+        # It must read as an invitation in the chat: "Carolina Arévalo, tienes una invitación" (no emoji: some WhatsApp show it as �).
         if guest and guest.get("name"):
-            title = f"💌 {guest['name']}, tienes una invitación"
+            title = f"{guest['name']}, tienes una invitación"
         else:
-            title = "💌 Tienes una invitación"
+            title = "Tienes una invitación"
         desc = f"{event} · {meta.get('description') or 'Toca para abrirla'}"
         if (meta.get("previewStyle") or "envelope") == "envelope":
             img = f"{BASE_URL}/og/{ev['slug']}/{(guest or {}).get('slug') or '_'}.jpg?v={ogimage.version(c, guest)}"
