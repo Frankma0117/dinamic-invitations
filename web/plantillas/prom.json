@@ -24,7 +24,7 @@
     }
   ],
   "share": {
-    "message": "Hola {nombre}, le compartimos su invitación a nuestro Prom: {enlace}"
+    "message": "Hola {nombre} ✨ Le compartimos su invitación a nuestro Prom: {enlace}"
   },
   "event": {
     "name": "nuestro Prom",

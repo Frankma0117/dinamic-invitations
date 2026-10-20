@@ -18,7 +18,7 @@ export const DEFAULTS = {
   // { slug, name, callName ("Señor Rector": va en el mensaje de WhatsApp), gender ('' | f | m | p = grupo), phone,
   //   greeting, pretitle, message, image, video, seats }
   guests: [],
-  share: { message: 'Hola {nombre}, te comparto tu invitación: {enlace}' },   // texto al enviar el enlace por WhatsApp (sin emojis: algunos WhatsApp los muestran como �)
+  share: { message: 'Hola {nombre} ✨ Te comparto tu invitación: {enlace}' },   // texto al enviar el enlace por WhatsApp (sin emojis: algunos WhatsApp los muestran como �)
   event: { name: '', date: '', time: '', endTime: '', tz: '-05:00', venue: '', address: '' },
   opening: {
     style: 'envelope',                       // envelope | diptych | curtain | none

@@ -1,6 +1,6 @@
 // Editor: tabs on the left, the form in the middle (its own scroll), the phone preview on the right.
 // Everything is saved on the server by itself (/api/events/<id>); files are uploaded in pieces (api.js).
-import { h, fillTemplate } from './util.js';
+import { h, fillTemplate, waLink, SAFE_SYMBOLS } from './util.js';
 import { normalize, getPath, setPath, fixSlugs, slugify, genderize } from './config.js';
 import { THEMES, THEME_KEYS, FONTS, TEXTURES, PARTICLES, resolveTheme, fontStack, loadFonts } from './themes.js';
 import { SEAL_ICONS, sealIcon } from './decor.js';
@@ -119,6 +119,22 @@ function control(path, o = {}) {
   });
 }
 const field = (label, path, o = {}) => h('label', { class: 'field' }, h('span', null, label), control(path, o), o.help && h('p', { class: 'hint' }, o.help));
+
+/** Text for WhatsApp + buttons that insert symbols every phone shows well. */
+function waField(label, path, o = {}) {
+  const box = control(path, { type: 'textarea', rows: o.rows || 2, placeholder: o.placeholder });
+  const insert = sym => {
+    const a = box.selectionStart ?? box.value.length, b = box.selectionEnd ?? a;
+    box.value = box.value.slice(0, a) + sym + box.value.slice(b);
+    box.focus(); box.selectionStart = box.selectionEnd = a + sym.length;
+    box.dispatchEvent(new Event('input'));
+  };
+  return h('div', { class: 'field' }, h('span', null, label), box,
+    h('div', { class: 'symbols', role: 'group', 'aria-label': 'Insertar símbolo' },
+      h('small', null, 'Símbolos que se ven en todo WhatsApp:'),
+      SAFE_SYMBOLS.map(sym => h('button', { type: 'button', class: 'sym', onclick: () => insert(sym), title: `Insertar ${sym}` }, sym))),
+    o.help && h('p', { class: 'hint' }, o.help));
+}
 const hint = text => h('p', { class: 'hint' }, text);
 const label = text => h('p', { class: 'label' }, text);
 const page = (title, desc, ...body) => [h('header', { class: 'page-head' }, h('h1', null, title), desc && h('p', null, desc)), ...body];
@@ -418,8 +434,8 @@ function contentTab() {
       field('Texto', S + 'rsvp.text', { type: 'textarea', rows: 2 }),
       control(S + 'rsvp.twoButtons', { type: 'checkbox', label: 'Mostrar también "No podré asistir"', rebuild: true }),
       h('div', { class: 'grid2' }, field('Botón sí', S + 'rsvp.yesLabel'), sec.rsvp.twoButtons && field('Botón no', S + 'rsvp.noLabel')),
-      field('Mensaje al confirmar', S + 'rsvp.yesMessage', { type: 'textarea', rows: 2, help: '{nombre} = el invitado · {evento} = nombre para los mensajes.' }),
-      sec.rsvp.twoButtons && field('Mensaje si no puede ir', S + 'rsvp.noMessage', { type: 'textarea', rows: 2 })),
+      waField('Mensaje al confirmar', S + 'rsvp.yesMessage', { help: '{nombre} = el invitado · {evento} = nombre para los mensajes.' }),
+      sec.rsvp.twoButtons && waField('Mensaje si no puede ir', S + 'rsvp.noMessage')),
     card({ id: 'calendar', icon: '🗓️', title: 'Agregar al calendario', collapsible: true, toggle: S + 'calendar.enabled' },
       field('Título', S + 'calendar.title'), hint('Botones para Google Calendar y para iPhone / Outlook.')),
     card({ id: 'closing', icon: '💛', title: 'Mensaje final', sub: sec.closing.title || '', collapsible: true, toggle: S + 'closing.enabled' },
@@ -525,7 +541,7 @@ function guestRow(g, i) {
   const gp = `guests.${i}.`;
   const key = keyOf(g);
   const st = uploads.get(key);
-  const waHref = () => `https://wa.me/${(g.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(shareText(g))}`;
+  const waHref = () => waLink(g.phone, shareText(g));
   const waBtn = h('a', { class: 'btn sm wa', href: waHref(), target: '_blank', rel: 'noopener', title: 'Enviar por WhatsApp' }, 'WhatsApp');
   const input = h('input', { type: 'file', accept: 'video/*', hidden: true });
   input.onchange = () => {
@@ -621,7 +637,7 @@ function guestsTab() {
       } }, 'Agregar'))),
     guests.length > 0 && h('div', { class: 'glist' }, guests.map(guestRow)),
     guests.length > 0 && card({ icon: '📤', title: 'Enviar a todos', sub: 'Mensaje con el que se comparte cada enlace' },
-      field('Mensaje de WhatsApp', 'share.message', { type: 'textarea', rows: 2, help: '{nombre} = cómo llamas a cada invitado ("Señor Rector"; si no lo escribiste, su nombre) · {enlace} = su enlace.' }),
+      waField('Mensaje de WhatsApp', 'share.message', { help: '{nombre} = cómo llamas a cada invitado ("Señor Rector"; si no lo escribiste, su nombre) · {enlace} = su enlace.' }),
       h('div', { style: { display: 'flex', gap: '8px', 'flex-wrap': 'wrap' } },
         h('button', { class: 'btn sm', type: 'button', onclick: () => copy(guests.map(g => `${g.name}: ${guestLink(g)}`).join('\n'), 'Todos los enlaces copiados') }, svg(I.copy), 'Copiar todos los enlaces'),
         h('button', { class: 'btn sm', type: 'button', onclick: () => download(`invitados-${ev.slug}.csv`, '﻿Nombre;Video;Cupos;WhatsApp;Enlace\n' + guests.map(g => [g.name, g.video ? 'sí' : 'no', g.seats || '', g.phone || '', guestLink(g)].map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv') }, '⬇️ Lista para Excel')),
@@ -655,7 +671,7 @@ function shareTab() {
       h('div', { class: 'link-box' }, h('input', { type: 'text', readonly: true, value: eventLink(), onclick: e => e.target.select() }),
         h('button', { class: 'btn primary', type: 'button', onclick: () => copy(eventLink(), 'Enlace copiado') }, svg(I.copy), 'Copiar')),
       h('div', { style: { display: 'flex', gap: '8px', 'flex-wrap': 'wrap' } },
-        h('a', { class: 'btn sm wa', href: `https://wa.me/?text=${encodeURIComponent(eventLink())}`, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+        h('a', { class: 'btn sm wa', href: waLink('', eventLink()), target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
         h('a', { class: 'btn sm', href: eventLink(), target: '_blank', rel: 'noopener' }, svg(I.open), 'Abrir'),
         h('button', { class: 'btn sm', type: 'button', onclick: () => setTab('guests') }, '👥 Enlaces por invitado')),
       h('label', { class: 'field' }, h('span', null, 'Dirección'), h('div', { style: { display: 'flex', 'align-items': 'center', gap: '4px' } }, h('span', { class: 'muted' }, `${location.host}/`), slugIn)),
@@ -730,7 +746,7 @@ function shareDialog() {
     h('div', { class: 'link-box' }, h('input', { type: 'text', readonly: true, value: eventLink(), onclick: e => e.target.select() }),
       h('button', { class: 'btn primary', type: 'button', onclick: () => copy(eventLink(), 'Enlace copiado') }, svg(I.copy), 'Copiar')),
     h('div', { style: { display: 'flex', gap: '8px', 'flex-wrap': 'wrap' } },
-      h('a', { class: 'btn sm wa', href: `https://wa.me/?text=${encodeURIComponent(eventLink())}`, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+      h('a', { class: 'btn sm wa', href: waLink('', eventLink()), target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
       h('a', { class: 'btn sm', href: eventLink(), target: '_blank', rel: 'noopener' }, svg(I.open), 'Abrir')),
     waPreview(),
     cfg.guests.length > 0

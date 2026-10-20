@@ -61,10 +61,16 @@ export function fillTemplate(tpl, vars) {
   return String(tpl || '').replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
 }
 
+/** WhatsApp link with a message. api.whatsapp.com keeps accents and symbols better than wa.me on WhatsApp for PC. */
 export function waLink(phone, text) {
   const num = String(phone || '').replace(/\D/g, '');
-  return `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
+  const p = new URLSearchParams({ text });
+  if (num) p.set('phone', num);
+  return `https://api.whatsapp.com/send?${p.toString().replace(/\+/g, '%20')}`;
 }
+
+// Symbols every WhatsApp shows well (the newer emojis like 💌 can arrive as "�" when sent through a link).
+export const SAFE_SYMBOLS = ['✨', '✉', '♥', '❤', '★', '☺', '✔', '♪', '☀', '❀'];
 
 /** YouTube / Vimeo URL → embeddable URL (null if it is neither). */
 export function videoEmbed(url, { autoplay = false, muted = false } = {}) {
