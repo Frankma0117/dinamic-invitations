@@ -1,0 +1,94 @@
+// Uploads in the editor: images are resized and compressed in the browser; files become data: URIs inside the config
+// (scripts/build.mjs and "Descargar sitio" turn them back into files when publishing).
+
+const readAsDataURL = blob => new Promise((ok, fail) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result); r.onerror = () => fail(r.error);
+  r.readAsDataURL(blob);
+});
+
+async function loadBitmap(file) {
+  if ('createImageBitmap' in window) {
+    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { /* fallback below */ }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url; await img.decode();
+    return img;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/** JPEG (shows in WhatsApp previews too), at most `max` px on the longest side. Transparent PNG/SVG stay PNG. */
+export async function compressImage(file, { max = 1600, quality = .82 } = {}) {
+  if (file.type === 'image/svg+xml' || file.type === 'image/gif') return readAsDataURL(file);
+  const bmp = await loadBitmap(file);
+  const w = bmp.width, h = bmp.height;
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const ctx = c.getContext('2d');
+  const keepPng = file.type === 'image/png' && hasAlpha(bmp);
+  if (!keepPng) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); }
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL(keepPng ? 'image/png' : 'image/jpeg', quality);
+}
+
+/** 1200×630 crop (centered) for the link preview. */
+export async function previewImage(file) {
+  const bmp = await loadBitmap(file);
+  const W = 1200, H = 630;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const k = Math.max(W / bmp.width, H / bmp.height);
+  const w = bmp.width * k, h = bmp.height * k;
+  c.getContext('2d').drawImage(bmp, (W - w) / 2, (H - h) / 2, w, h);
+  return c.toDataURL('image/jpeg', .8);
+}
+
+function hasAlpha(bmp) {
+  const c = document.createElement('canvas');
+  c.width = Math.min(64, bmp.width); c.height = Math.min(64, bmp.height);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  return false;
+}
+
+export const fileToDataURL = readAsDataURL;
+
+/** Approximate size in MB of a data: URI. */
+export const dataUriMB = s => (typeof s === 'string' && s.startsWith('data:') ? (s.length * .75) / 1048576 : 0);
+
+/* ---------- Draft in IndexedDB (localStorage is too small for images) ---------- */
+
+function db() {
+  return new Promise((ok, fail) => {
+    const req = indexedDB.open('invitaciones-editor', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('kv');
+    req.onsuccess = () => ok(req.result); req.onerror = () => fail(req.error);
+  });
+}
+
+export async function draftGet(key) {
+  try {
+    const d = await db();
+    return await new Promise((ok, fail) => {
+      const r = d.transaction('kv').objectStore('kv').get(key);
+      r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error);
+    });
+  } catch { return undefined; }
+}
+
+export async function draftSet(key, value) {
+  try {
+    const d = await db();
+    await new Promise((ok, fail) => {
+      const t = d.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(value, key);
+      t.oncomplete = ok; t.onerror = () => fail(t.error);
+    });
+    return true;
+  } catch { return false; }
+}

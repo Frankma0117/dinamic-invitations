@@ -1,0 +1,16 @@
+# Invitaciones — en el VPS (Contabo), en /opt/invitaciones.
+#   Desplegar/actualizar:  bash scripts/deploy.sh
+# El nginx del servidor publica https://invitaciones.cania.app → 127.0.0.1:5700. Nada más se expone.
+
+name: invitaciones
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        SITE_URL: "${SITE_URL:-https://invitaciones.cania.app}"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-5700}:80"
+    mem_limit: 64m

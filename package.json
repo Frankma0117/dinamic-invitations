@@ -1,0 +1,10 @@
+{
+  "name": "invitaciones",
+  "private": true,
+  "type": "module",
+  "description": "Invitaciones digitales animadas: sitio estático + editor (se publica en el VPS propio).",
+  "scripts": {
+    "build": "node scripts/build.mjs --out dist",
+    "dev": "node scripts/serve.mjs"
+  }
+}

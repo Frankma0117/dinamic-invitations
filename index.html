@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#efe6d6">
+  <!-- og:start (scripts/build.mjs y el editor reescriben este bloque con los datos de config.json) -->
+  <title>Invitación</title>
+  <meta name="description" content="Estás invitado(a). Toca para abrir tu invitación.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Invitación">
+  <meta property="og:description" content="Estás invitado(a). Toca para abrir tu invitación.">
+  <!-- og:end -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/invite.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+  <script type="module" src="js/invite.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div id="app"><div class="loading" aria-label="Cargando"></div></div>
+  <noscript><p style="text-align:center;padding:2rem">Activa JavaScript para ver la invitación.</p></noscript>
+</body>
+</html>
