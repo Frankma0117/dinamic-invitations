@@ -2,8 +2,8 @@
 // Everything is saved on the server by itself (/api/events/<id>); files are uploaded in pieces (api.js).
 import { h, fillTemplate } from './util.js';
 import { normalize, getPath, setPath, SECTION_LABELS, fixSlugs, slugify } from './config.js';
-import { THEMES, FONTS, TEXTURES, PARTICLES, resolveTheme } from './themes.js';
-import { SEAL_ICONS } from './decor.js';
+import { THEMES, THEME_KEYS, FONTS, TEXTURES, PARTICLES, resolveTheme, fontStack, loadFonts } from './themes.js';
+import { SEAL_ICONS, sealIcon } from './decor.js';
 import { compressImage, previewImage } from './image.js';
 import { api, uploadFile, dataUriToBlob, copyText } from './api.js';
 
@@ -84,9 +84,12 @@ function changed({ rebuild = false, replay = false } = {}) {
 
 /* ---------- Form controls ---------- */
 
+// Changes that are seen on the envelope: the preview plays the opening again.
+const REPLAY = /^(opening\.|guest\.|theme\.(envelope|seal|fontName|curtain|bg))/;
+
 function control(path, o = {}) {
   const v = getPath(cfg, path);
-  const set = val => { setPath(cfg, path, val); changed({ rebuild: o.rebuild, replay: path.startsWith('opening.') || path.startsWith('guest.') }); };
+  const set = val => { setPath(cfg, path, val); changed({ rebuild: o.rebuild, replay: REPLAY.test(path) }); };
   if (o.type === 'textarea') {
     return h('textarea', { rows: o.rows || 4, placeholder: o.placeholder || '', value: v ?? '', oninput: e => set(e.target.value) });
   }
@@ -124,13 +127,13 @@ function imageField(label, path, o = {}) {
     if (!f) return;
     try {
       toast('Comprimiendo imagen…');
-      const data = o.og ? await previewImage(f) : await compressImage(f, { max: o.max || 1600 });
+      const data = o.og ? await previewImage(f) : await compressImage(f, { max: o.max || 2400 });
       const blob = dataUriToBlob(data);
       const ext = { 'image/png': 'png', 'image/svg+xml': 'svg', 'image/gif': 'gif' }[blob.type] || 'jpg';
       const r = await upload(blob, `imagen.${ext}`);
       if (!r) return;
       setPath(cfg, path, r.url);
-      changed({ rebuild: true });
+      changed({ rebuild: true, replay: REPLAY.test(path) });
     } catch (e) { console.error(e); toast('No pude leer esa imagen. Prueba con JPG o PNG.'); }
   };
   return h('div', { class: 'field' }, h('span', null, label),
@@ -192,50 +195,96 @@ function group(id, emoji, title, body, toggle) {
 
 /* ---------- Groups ---------- */
 
-const fontOptions = (kindFirst, current) => {
-  const order = ['serif', 'sans', 'script'];
-  order.sort((a, b) => (a === kindFirst ? -1 : b === kindFirst ? 1 : 0));
-  const names = order.flatMap(k => Object.entries(FONTS).filter(([, f]) => f.kind === k).map(([n]) => n));
-  return [['', `Del tema (${current})`], ...names.map(n => [n, n])];
-};
+const FONT_KINDS = { serif: 'Elegantes (con remate)', sans: 'Modernas', script: 'Manuscritas' };
+
+/** Visual font chooser: every option is written in its own typeface. */
+function fontPicker(label, path, kind, presetName, sample) {
+  const cur = getPath(cfg, path) || '';
+  const shown = cur || presetName;
+  const id = 'font:' + path;
+  const grid = h('div', { class: 'font-grid', hidden: !openGroups.has(id) });
+  const fill = () => {
+    loadFonts(Object.keys(FONTS));
+    const opt = (name, note) => h('button', {
+      type: 'button', class: `font-opt${name === cur ? ' on' : ''}`,
+      onclick: () => { setPath(cfg, path, name); changed({ rebuild: true }); },
+    }, h('span', { class: 'font-sample', style: { 'font-family': fontStack(name || presetName) } }, sample), h('small', null, note));
+    const kinds = [kind, ...Object.keys(FONT_KINDS).filter(k => k !== kind)];
+    grid.replaceChildren(
+      opt('', `Del tema · ${presetName}`),
+      ...kinds.flatMap(k => [
+        h('p', { class: 'font-kind' }, FONT_KINDS[k]),
+        ...Object.entries(FONTS).filter(([, f]) => f.kind === k).map(([name]) => opt(name, name)),
+      ]));
+  };
+  if (!grid.hidden) fill();
+  loadFonts([shown]);
+  const current = h('button', { type: 'button', class: 'font-current', 'aria-expanded': String(!grid.hidden),
+    onclick: () => {
+      grid.hidden = !grid.hidden;
+      current.setAttribute('aria-expanded', String(!grid.hidden));
+      if (grid.hidden) openGroups.delete(id); else { openGroups.add(id); fill(); }
+    } },
+    h('span', { class: 'font-sample', style: { 'font-family': fontStack(shown) } }, sample),
+    h('small', null, cur ? shown : `${shown} (del tema)`, ' · Cambiar ▾'));
+  return h('div', { class: 'field' }, h('span', null, label), current, grid);
+}
+
+const colorField = (label, key, preset) =>
+  h('label', { class: 'field' }, h('span', null, label), control(`theme.${key}`, { type: 'color', fallback: preset[key] }));
 
 function designGroup() {
   const preset = resolveTheme({ preset: cfg.theme.preset });
-  const t = resolveTheme(cfg.theme);
   const cards = Object.entries(THEMES).map(([key, th]) => h('button', {
     type: 'button', class: `theme-card${cfg.theme.preset === key ? ' on' : ''}`,
-    onclick: () => {
-      cfg.theme = { preset: key, primary: '', secondary: '', fontTitle: '', fontBody: '', fontScript: '', texture: '', particles: '' };
-      changed({ rebuild: true });
-    },
-  }, h('div', { class: 'theme-swatch', style: { background: th.bg } }, h('b', { style: { background: th.paper } }), h('b', { style: { background: th.primary } }), h('b', { style: { background: th.secondary } })), th.label));
-  return group('design', '🎨', 'Diseño y colores', [
+    onclick: () => { cfg.theme = { preset: key }; changed({ rebuild: true, replay: true }); },
+  }, h('div', { class: 'theme-swatch', style: { background: th.bg } }, h('b', { style: { background: th.paper } }), h('b', { style: { background: th.primary } }), h('b', { style: { background: th.envelope } })), th.label));
+  const changedKeys = THEME_KEYS.filter(k => cfg.theme[k]).length;
+  return group('design', '🎨', 'Diseño, colores y letras', [
+    hint('Elige un estilo base; luego cambia lo que quieras. ↺ devuelve el valor del estilo.'),
     h('div', { class: 'themes' }, cards),
+    h('p', { class: 'sub' }, 'Colores de la invitación'),
     h('div', { class: 'row2' },
-      h('label', { class: 'field' }, h('span', null, 'Color principal'), control('theme.primary', { type: 'color', fallback: preset.primary })),
-      h('label', { class: 'field' }, h('span', null, 'Color secundario'), control('theme.secondary', { type: 'color', fallback: preset.secondary }))),
-    field('Letra de títulos', 'theme.fontTitle', { type: 'select', options: fontOptions('serif', preset.fontTitle) }),
-    field('Letra del texto', 'theme.fontBody', { type: 'select', options: fontOptions('sans', preset.fontBody) }),
-    field('Letra manuscrita (nombres)', 'theme.fontScript', { type: 'select', options: fontOptions('script', preset.fontScript) }),
+      colorField('Principal (títulos, botones)', 'primary', preset), colorField('Secundario (detalles)', 'secondary', preset),
+      colorField('Fondo', 'bg', preset), colorField('Papel de la tarjeta', 'paper', preset),
+      colorField('Texto', 'ink', preset)),
+    h('p', { class: 'sub' }, 'Letras'),
+    fontPicker('Títulos', 'theme.fontTitle', 'serif', preset.fontTitle, cfg.sections.header.title || 'Fiesta de Grado'),
+    fontPicker('Texto', 'theme.fontBody', 'sans', preset.fontBody, 'Nos encantaría que nos acompañaras'),
+    fontPicker('Manuscrita (subtítulo y firma)', 'theme.fontScript', 'script', preset.fontScript, cfg.sections.header.names || 'Con cariño'),
+    h('p', { class: 'sub' }, 'Ambiente'),
     h('div', { class: 'row2' },
-      field('Textura de fondo', 'theme.texture', { type: 'select', options: [['', `Del tema (${TEXTURES[preset.texture]})`], ...Object.entries(TEXTURES)] }),
-      field('Partículas', 'theme.particles', { type: 'select', options: [['', `Del tema (${PARTICLES[preset.particles]})`], ...Object.entries(PARTICLES)] })),
+      field('Textura de fondo', 'theme.texture', { type: 'select', options: [['', `Del estilo (${TEXTURES[preset.texture]})`], ...Object.entries(TEXTURES)] }),
+      field('Efecto que cae', 'theme.particles', { type: 'select', options: [['', `Del estilo (${PARTICLES[preset.particles]})`], ...Object.entries(PARTICLES)] })),
     control('opening.confetti', { type: 'checkbox', label: 'Lanzar confeti al abrir' }),
-    hint(`Usando: ${t.fontTitle} · ${t.fontBody} · ${t.fontScript}`),
+    changedKeys > 0 && h('button', { class: 'btn sm', type: 'button', onclick: () => { cfg.theme = { preset: cfg.theme.preset }; changed({ rebuild: true, replay: true }); } }, `↺ Quitar mis ${changedKeys} cambio(s) de color y letra`),
   ]);
 }
 
 function openingGroup() {
   const seal = cfg.opening.seal;
-  return group('opening', '💌', 'Apertura y sobre', [
-    h('div', { class: 'field' }, h('span', null, 'Estilo de apertura'),
-      choices('opening.style', [['envelope', '✉️ Sobre con carta'], ['diptych', '📖 Tarjeta díptico'], ['curtain', '🎭 Telón'], ['none', 'Sin animación']])),
+  const preset = resolveTheme({ preset: cfg.theme.preset });
+  const sealImg = seal.type === 'image';
+  return group('opening', '💌', 'Sobre, sello y nombre', [
+    h('div', { class: 'field' }, h('span', null, 'Cómo se abre'),
+      choices('opening.style', [['envelope', '✉️ Sobre con carta'], ['diptych', '📖 Tarjeta que se abre'], ['curtain', '🎭 Telón'], ['none', 'Sin animación']])),
+    h('p', { class: 'sub' }, 'Colores del sobre'),
+    h('div', { class: 'row2' },
+      colorField('Sobre', 'envelope', preset), colorField('Interior del sobre', 'envelopeInner', preset),
+      colorField('Sello de cera', 'seal', preset), colorField('Letras / ícono del sello', 'sealInk', preset),
+      colorField('Nombre escrito en el sobre', 'envelopeInk', preset), cfg.opening.style === 'curtain' && colorField('Telón', 'curtain', preset)),
+    h('p', { class: 'sub' }, 'Nombre del invitado'),
+    fontPicker('Letra del nombre (sobre y tarjeta)', 'theme.fontName', 'script', preset.fontName || preset.fontScript, 'Carolina Arévalo'),
+    field('Si el enlace no trae nombre, escribir', 'guest.fallback', { placeholder: 'Para ti' }),
+    h('p', { class: 'sub' }, 'Sello'),
+    choices('opening.seal.type', [['initials', 'Iniciales'], ['icon', 'Ícono'], ['image', 'Mi imagen o logo']]),
+    seal.type === 'icon' && h('div', { class: 'seal-icons' }, Object.entries(SEAL_ICONS).map(([k, ic]) => h('button', {
+      type: 'button', class: `seal-icon${seal.icon === k ? ' on' : ''}`, title: ic.label, 'aria-label': ic.label,
+      onclick: () => { seal.icon = k; changed({ rebuild: true, replay: true }); },
+    }, h('span', { svg: sealIcon(k) }), h('small', null, ic.label)))),
+    seal.type === 'initials' && field('Iniciales (máx. 4)', 'opening.seal.text', { placeholder: 'L&M', maxlength: 4 }),
+    sealImg && imageField('Imagen del sello', 'opening.seal.image', { max: 400, help: 'Se recorta en círculo. Un logo o un monograma queda muy bien.' }),
     field('Texto para invitar a tocar', 'opening.hint', { placeholder: 'Toca para abrir' }),
-    field('Texto si el enlace no trae nombre', 'guest.fallback', { placeholder: 'Para ti' }),
-    h('div', { class: 'field' }, h('span', null, 'Sello de cera'), choices('opening.seal.type', [['initials', 'Iniciales'], ['icon', 'Ícono']])),
-    seal.type === 'icon'
-      ? h('div', { class: 'choices' }, Object.entries(SEAL_ICONS).map(([k, ic]) => h('button', { type: 'button', class: `choice${seal.icon === k ? ' on' : ''}`, onclick: () => { seal.icon = k; changed({ rebuild: true, replay: true }); } }, ic.label)))
-      : field('Iniciales del sello (máx. 4)', 'opening.seal.text', { placeholder: 'L&M', maxlength: 4 }),
   ]);
 }
 
@@ -275,15 +324,16 @@ function sectionGroups() {
     h('div', { class: 'field' }, h('span', null, 'Tipo'), choices(S + 'media.kind', [['image', '🖼️ Imagen'], ['video', '🎬 Video']])),
     ...(m.kind === 'image' ? [
       imageField('Imagen principal', S + 'media.image.src', { help: 'Se comprime sola. Ideal vertical (4:5).' }),
+      control(S + 'media.image.intro', { type: 'checkbox', label: 'La imagen ES la invitación: mostrarla grande al abrir el sobre (si es horizontal, pide girar el celular)', rebuild: true }),
       field('Descripción de la imagen (accesibilidad)', S + 'media.image.alt'),
       h('div', { class: 'field' }, h('span', null, 'Animación'),
         choices(S + 'media.image.effect', [['kenburns', 'Zoom lento'], ['parallax', 'Parallax'], ['blur', 'Aparece desenfocada'], ['glow', 'Marco con brillo'], ['none', 'Ninguna']], { rebuild: false })),
     ] : [
       field('Enlace de YouTube o Vimeo', S + 'media.video.url', { type: 'url', placeholder: 'https://youtu.be/…', help: 'O sube un MP4 abajo (si hay ambos, se usa el MP4).' }),
-      fileField('Video', S + 'media.video.src', { accept: 'video/*', maxMB: 600, help: 'Cualquier video del celular; el servidor lo optimiza para que abra rápido.',
+      fileField('Video', S + 'media.video.src', { accept: 'video/*', maxMB: 600, help: 'Se guarda con su calidad original y se repite en loop.',
         onPoster: p => { if (!cfg.sections.media.video.poster) cfg.sections.media.video.poster = p; if (!cfg.meta.image) cfg.meta.image = p; } }),
       h('div', { class: 'field' }, h('span', null, 'Reproducción'), choices(S + 'media.video.play', [['muted', 'Sola y sin sonido al verla'], ['button', 'Con botón de play']], { rebuild: false })),
-      control(S + 'media.video.intro', { type: 'checkbox', label: 'El video ES la invitación: mostrarlo a pantalla completa al abrir (con botón "Continuar")' }),
+      control(S + 'media.video.intro', { type: 'checkbox', label: 'El video ES la invitación: mostrarlo grande al abrir el sobre, en loop, con "Continuar" (si es horizontal, pide girar el celular)' }),
     ]),
   ], S + 'media.enabled'));
 
@@ -332,7 +382,7 @@ function sectionGroups() {
     toast(`Comprimiendo ${files.length} foto(s)…`);
     for (const f of files) {
       try {
-        const r = await upload(dataUriToBlob(await compressImage(f, { max: 1280 })), 'foto.jpg');
+        const r = await upload(dataUriToBlob(await compressImage(f, { max: 2000 })), 'foto.jpg');
         if (r) imgs.push({ src: r.url, alt: '' });
       } catch { toast(`No pude leer ${f.name}`); }
     }

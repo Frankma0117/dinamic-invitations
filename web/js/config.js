@@ -20,17 +20,18 @@ export const DEFAULTS = {
   opening: {
     style: 'envelope',                       // envelope | diptych | curtain | none
     hint: 'Toca para abrir',
-    seal: { type: 'initials', text: '', icon: 'heart' },
+    seal: { type: 'initials', text: '', icon: 'heart', image: '' },   // type: initials | icon | image
     confetti: false,
   },
-  theme: { preset: 'crema', primary: '', secondary: '', fontTitle: '', fontBody: '', fontScript: '', texture: '', particles: '' },
+  theme: { preset: 'crema' },                // + any key of THEME_KEYS (themes.js) to change a color or a font
+
   music: { enabled: false, src: '', title: '', volume: 0.6 },
   sections: {
     header: { enabled: true, greeting: '', title: '', names: '' },
     message: { enabled: true, text: '' },
     media: {
       enabled: false, kind: 'image',         // image | video
-      image: { src: '', alt: '', effect: 'kenburns' },  // kenburns | parallax | blur | glow | none
+      image: { src: '', alt: '', effect: 'kenburns', intro: false },  // effect: kenburns | parallax | blur | glow | none; intro = la imagen ES la invitación
       video: { src: '', url: '', poster: '', play: 'muted', intro: false },   // play: muted (auto, sin sonido) | button
     },
     when: { enabled: true },
@@ -115,14 +116,16 @@ export function forGuest(cfg, g) {
   }
   if (g.image) {
     c.meta.image = g.image;                     // always the WhatsApp preview
-    if (introVideo(c)) media.video.poster = g.image;
-    else { media.enabled = true; media.kind = 'image'; media.image.src = g.image; }
+    if (introMedia(c)?.kind === 'video') media.video.poster = g.image;
+    else { media.enabled = true; media.kind = 'image'; media.image.src = g.image; }   // their own card (keeps "intro")
   }
   return c;
 }
 
-/** Video shown full screen right after opening (null if none). */
-export function introVideo(cfg) {
-  const m = cfg.sections.media, v = m.video;
-  return m.enabled && m.kind === 'video' && v.intro && (v.src || v.url) ? v : null;
+/** Video or image that IS the invitation, shown big right after opening (null if none). */
+export function introMedia(cfg) {
+  const m = cfg.sections.media;
+  if (!m.enabled) return null;
+  if (m.kind === 'video') return m.video.intro && (m.video.src || m.video.url) ? { kind: 'video', ...m.video } : null;
+  return m.image.intro && m.image.src ? { kind: 'image', ...m.image } : null;
 }

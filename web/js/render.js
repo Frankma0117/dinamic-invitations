@@ -35,7 +35,7 @@ const BUILD = {
   media(s, cfg, ctx) {
     if (s.kind === 'video') return videoBlock(s.video, ctx);
     const img = s.image;
-    if (!filled(img.src)) return null;
+    if (!filled(img.src) || img.intro) return null;          // an intro image is shown right after opening instead
     const effect = img.effect || 'none';
     const pic = h('img', { src: img.src, alt: img.alt || '', loading: 'lazy', decoding: 'async', 'data-parallax': effect === 'parallax' ? '' : null });
     return sec('media', null, h('figure', { class: `hero fx-${effect}` }, h('div', { class: 'hero-in' }, pic)));
@@ -145,11 +145,11 @@ function row(ic, label, main, sub) {
 function videoBlock(v, ctx) {
   const emb = videoEmbed(v.url);
   if (!filled(v.src) && !emb) return null;
-  if (v.intro) return null;                  // shown full screen right after opening (see introVideo); not repeated in the card
+  if (v.intro) return null;                  // shown full screen right after opening (see introMedia); not repeated in the card
   const auto = v.play !== 'button';
   let el;
   if (filled(v.src)) {
-    el = h('video', { src: v.src, poster: v.poster || null, playsinline: true, preload: 'metadata', controls: !auto, loop: auto, muted: auto, 'data-autoplay': auto ? '' : null });
+    el = h('video', { src: v.src, poster: v.poster || null, playsinline: true, preload: 'metadata', controls: !auto, loop: true, muted: auto, 'data-autoplay': auto ? '' : null });
     if (auto) {
       const sound = h('button', { class: 'vid-sound', type: 'button', 'aria-label': 'Activar sonido' }, '🔇');
       sound.onclick = () => { el.muted = !el.muted; sound.textContent = el.muted ? '🔇' : '🔊'; if (!el.muted) { ctx.music?.pause(); el.play(); } };

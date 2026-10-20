@@ -12,6 +12,7 @@ MEDIA_DIR = DATA_DIR / "media"
 TMP_DIR = DATA_DIR / "tmp"
 
 FFMPEG = os.getenv("FFMPEG", "ffmpeg")
+FFPROBE = os.getenv("FFPROBE", "ffprobe")
 SESSION_DAYS = int(os.getenv("SESSION_DAYS", "14"))
 MAX_UPLOAD_MB = {"image": 25, "audio": 40, "video": 600}
 CHUNK_MAX = 4 * 1024 * 1024 + 1024          # the host nginx accepts 5 MB per request: files travel in 4 MB pieces

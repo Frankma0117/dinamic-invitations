@@ -1,9 +1,9 @@
 // Guest page. Reads its invitation from the server (/api/i/<event>) — or, inside the editor's preview, the config the
 // editor sends. Who is the guest: the page /<event>/<guest>/ (meta "guest-slug"), or ?para=Name for anyone not on the list.
-import { loadConfig, normalize, forGuest, introVideo, fixSlugs } from './config.js';
+import { loadConfig, normalize, forGuest, introMedia, fixSlugs } from './config.js';
 import { applyTheme } from './themes.js';
 import { renderInvitation } from './render.js';
-import { playOpening, playIntroVideo, prepareIntroVideo } from './opening.js';
+import { playOpening, playIntroMedia, prepareIntroVideo } from './opening.js';
 import { startParticles, startReveal, startAutoVideos, startCountdown, createMusic } from './fx.js';
 import { h, videoEmbed, reducedMotion } from './util.js';
 
@@ -55,14 +55,14 @@ function render(raw, { replay = false, as } = {}) {
     document.documentElement.classList.add('opened');
     cleanups.push(startReveal(app), startAutoVideos(app));
   };
-  const iv = introVideo(cfg);
+  const iv = introMedia(cfg);
   let ivEl = null;
   const afterOpen = () => {
     opened = true;
     if (cfg.opening.confetti) confettiBurst(colors);
     if (iv) {
-      music?.pause();
-      const close = playIntroVideo(iv, { videoEmbed, el: ivEl, decor: theme.decor, onEnd: () => { music?.play(); showCard(); } });
+      if (iv.kind === 'video') music?.pause();
+      const close = playIntroMedia(iv, { videoEmbed, el: ivEl, decor: theme.decor, onEnd: () => { if (iv.kind === 'video') music?.play(); showCard(); } });
       cleanups.push(close);
     } else showCard();
   };
@@ -82,7 +82,7 @@ function render(raw, { replay = false, as } = {}) {
   }
   cleanups.push(playOpening(cfg, {
     guest: name, decor: theme.decor,
-    onTap: () => { if (iv) ivEl = prepareIntroVideo(iv); else music?.play(); },
+    onTap: () => { if (iv?.kind === 'video') ivEl = prepareIntroVideo(iv); else music?.play(); },
     onReveal: () => { if (!iv) showCard(); },
     onDone: afterOpen,
   }));

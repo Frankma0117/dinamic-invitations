@@ -71,14 +71,14 @@ export function videoEmbed(url, { autoplay = false, muted = false } = {}) {
   if (!url) return null;
   let m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
   if (m) {
-    const p = new URLSearchParams({ rel: '0', playsinline: '1', modestbranding: '1' });
+    const p = new URLSearchParams({ rel: '0', playsinline: '1', modestbranding: '1', loop: '1', playlist: m[1] });
     if (autoplay) p.set('autoplay', '1');
     if (muted) p.set('mute', '1');
     return { kind: 'youtube', id: m[1], src: `https://www.youtube-nocookie.com/embed/${m[1]}?${p}` };
   }
   m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (m) {
-    const p = new URLSearchParams({ playsinline: '1', title: '0', byline: '0' });
+    const p = new URLSearchParams({ playsinline: '1', title: '0', byline: '0', loop: '1' });
     if (autoplay) p.set('autoplay', '1');
     if (muted) p.set('muted', '1');
     return { kind: 'vimeo', id: m[1], src: `https://player.vimeo.com/video/${m[1]}?${p}` };

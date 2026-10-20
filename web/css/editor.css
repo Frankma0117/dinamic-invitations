@@ -86,6 +86,27 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 .choice { padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--panel); cursor: pointer; font-size: .9rem; }
 .choice.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 
+.sub { margin: 6px 0 -4px; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.seal-icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.seal-icon { display: grid; justify-items: center; gap: 4px; padding: 10px 4px 8px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--panel); cursor: pointer; }
+.seal-icon span { width: 34px; height: 34px; color: var(--accent); }
+.seal-icon svg { width: 100%; height: 100%; }
+.seal-icon small { font-size: .75rem; color: var(--muted); }
+.seal-icon.on { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Letras */
+.font-current { display: grid; gap: 2px; width: 100%; padding: 10px 14px; text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; }
+.font-current:hover { border-color: var(--accent); }
+.font-current small, .font-opt small { font: 500 .78rem/1.3 system-ui, sans-serif; color: var(--muted); }
+.font-sample { display: block; font-size: 1.55rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 420px; overflow-y: auto; padding: 6px; border: 1px solid var(--line); border-radius: 12px; }
+.font-grid[hidden] { display: none; }
+.font-opt { display: grid; gap: 2px; min-width: 0; padding: 10px 12px; text-align: left; border: 1.5px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; }
+.font-opt:hover { border-color: var(--accent); }
+.font-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.font-opt .font-sample { font-size: 1.3rem; }
+.font-kind { grid-column: 1 / -1; margin: 8px 2px 0; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
 /* Imágenes */
 .img-field { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: start; }
 .thumb { width: 92px; height: 92px; border-radius: 10px; border: 1px dashed var(--line); background: var(--bg) center / cover no-repeat; display: grid; place-items: center; color: var(--muted); font-size: .75rem; text-align: center; }

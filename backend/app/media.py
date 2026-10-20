@@ -1,7 +1,8 @@
 """Files of each invitation (data/media/<id>/). They arrive in pieces of 4 MB (the server's nginx accepts 5 MB per
-request) and are joined here. Videos are converted to MP4 for phones (H.264, max. 1280 px, fast start) and get a
-cover image; audio becomes MP3. Conversion runs in the background: the editor asks for the state until it is ready.
+request) and are joined here. Videos keep their quality (see _plan) and get a cover image; audio becomes MP3 unless
+it already is. Processing runs in the background: the editor asks for the state until it is ready.
 """
+import json
 import re
 import secrets
 import shutil
@@ -9,7 +10,7 @@ import subprocess
 import threading
 from pathlib import Path
 
-from .settings import FFMPEG, MAX_UPLOAD_MB, MEDIA_DIR, TMP_DIR
+from .settings import FFMPEG, FFPROBE, MAX_UPLOAD_MB, MEDIA_DIR, TMP_DIR
 
 IMAGE_EXT = {"jpg", "jpeg", "png", "webp", "gif", "svg"}
 AUDIO_EXT = {"mp3", "m4a", "aac", "ogg", "wav", "opus"}
@@ -67,33 +68,61 @@ def finish(event_id: str, uid: str, name: str) -> dict:
         dst = folder / f"{stem}.{ext}"
         shutil.move(src, dst)
         return {"url": f"/media/{event_id}/{dst.name}", "state": "ready", "kind": kind}
+    if kind == "audio" and ext == "mp3":
+        dst = folder / f"{stem}.mp3"                 # MP3 plays everywhere: kept exactly as uploaded
+        shutil.move(src, dst)
+        return {"url": f"/media/{event_id}/{dst.name}", "state": "ready", "kind": kind}
     raw = TMP_DIR / f"{uid}.{ext}"
     shutil.move(src, raw)
-    final = folder / (f"{stem}.mp4" if kind == "video" else f"{stem}.mp3")
+    plan = _plan(kind, raw, ext)
+    final = folder / f"{stem}.{plan['ext']}"
     key = f"{event_id}/{final.name}"
     with _lock:
         _jobs[key] = {"state": "processing"}
-    threading.Thread(target=_convert, args=(kind, raw, final, key), daemon=True).start()
-    return {"url": f"/media/{key}", "state": "processing", "kind": kind}
+    threading.Thread(target=_convert, args=(kind, raw, final, key, plan), daemon=True).start()
+    return {"url": f"/media/{key}", "state": "processing", "kind": kind, "lossless": plan["lossless"]}
 
 
-def _convert(kind: str, raw: Path, final: Path, key: str) -> None:
+def _probe(path: Path) -> dict:
+    """Codec of the first video and audio stream, e.g. {'video': 'h264', 'audio': 'aac'}."""
+    try:
+        out = subprocess.run([FFPROBE, "-v", "error", "-show_entries", "stream=codec_type,codec_name", "-of", "json", str(path)],
+                             capture_output=True, timeout=60, check=True).stdout
+        found = {}
+        for st in json.loads(out).get("streams", []):
+            found.setdefault(st.get("codec_type"), st.get("codec_name"))
+        return found
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return {}
+
+
+def _plan(kind: str, raw: Path, ext: str) -> dict:
+    """Videos keep their quality: if the browser can play the codec, the streams are only copied (no re-encoding,
+    no loss) into a container that starts fast. Only codecs many phones can't play (HEVC/H.265 from iPhone, ProRes…)
+    are converted, at very high quality and the same resolution."""
+    c = _probe(raw)
+    v, a = c.get("video", ""), c.get("audio", "")
+    if kind == "audio":
+        return {"ext": "mp3", "args": ["-vn", "-c:a", "libmp3lame", "-q:a", "0"], "lossless": False}
+    if ext == "webm" and v in {"vp8", "vp9", "av1"} and a in {"", "opus", "vorbis"}:
+        return {"ext": "webm", "args": ["-c", "copy"], "lossless": True}
+    audio = ["-c:a", "copy"] if a in {"aac", "mp3", ""} else ["-c:a", "aac", "-b:a", "256k"]
+    if v in {"h264", "av1"}:
+        return {"ext": "mp4", "args": ["-map", "0:v:0", "-map", "0:a:0?", "-c:v", "copy", *audio, "-movflags", "+faststart"], "lossless": True}
+    return {"ext": "mp4", "args": ["-map", "0:v:0", "-map", "0:a:0?", "-c:v", "libx264", "-preset", "slow", "-crf", "15",
+                                    "-pix_fmt", "yuv420p", *audio, "-movflags", "+faststart"], "lossless": False}
+
+
+def _convert(kind: str, raw: Path, final: Path, key: str, plan: dict) -> None:
     tmp = final.with_name(final.stem + ".work" + final.suffix)
     try:
-        if kind == "video":
-            cmd = [FFMPEG, "-y", "-loglevel", "error", "-i", str(raw),
-                   "-vf", "scale='min(1280,iw)':-2:flags=lanczos,format=yuv420p",
-                   "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", "-profile:v", "high",
-                   "-c:a", "aac", "-b:a", "128k", "-ac", "2", "-movflags", "+faststart", str(tmp)]
-        else:
-            cmd = [FFMPEG, "-y", "-loglevel", "error", "-i", str(raw), "-vn", "-c:a", "libmp3lame", "-b:a", "128k", str(tmp)]
-        subprocess.run(cmd, check=True, timeout=1800, capture_output=True)
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(raw), *plan["args"], str(tmp)], check=True, timeout=3600, capture_output=True)
         tmp.replace(final)
         result = {"state": "ready"}
         if kind == "video":
             poster = final.with_suffix(".jpg")
             subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", "1", "-i", str(final), "-frames:v", "1",
-                            "-vf", "scale='min(1200,iw)':-2", "-q:v", "4", str(poster)], timeout=120, capture_output=True)
+                            "-vf", "scale='min(1600,iw)':-2", "-q:v", "2", str(poster)], timeout=120, capture_output=True)
             if poster.exists():
                 result["poster"] = f"/media/{key.rsplit('.', 1)[0]}.jpg"
     except (subprocess.SubprocessError, OSError) as e:
@@ -115,5 +144,5 @@ def status(event_id: str, file: str) -> dict:
     path = MEDIA_DIR / event_id / file
     if path.exists():
         poster = path.with_suffix(".jpg")
-        return {"state": "ready", **({"poster": f"/media/{event_id}/{poster.name}"} if poster.exists() and path.suffix == ".mp4" else {})}
+        return {"state": "ready", **({"poster": f"/media/{event_id}/{poster.name}"} if poster.exists() and path.suffix in (".mp4", ".webm") else {})}
     return {"state": "error", "error": "El archivo ya no existe"}

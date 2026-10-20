@@ -19,7 +19,7 @@ async function loadBitmap(file) {
 }
 
 /** JPEG (shows in WhatsApp previews too), at most `max` px on the longest side. Transparent PNG/SVG stay PNG. */
-export async function compressImage(file, { max = 1600, quality = .82 } = {}) {
+export async function compressImage(file, { max = 2400, quality = .92 } = {}) {
   if (file.type === 'image/svg+xml' || file.type === 'image/gif') return readAsDataURL(file);
   const bmp = await loadBitmap(file);
   const w = bmp.width, h = bmp.height;
@@ -42,7 +42,7 @@ export async function previewImage(file) {
   const k = Math.max(W / bmp.width, H / bmp.height);
   const w = bmp.width * k, h = bmp.height * k;
   c.getContext('2d').drawImage(bmp, (W - w) / 2, (H - h) / 2, w, h);
-  return c.toDataURL('image/jpeg', .8);
+  return c.toDataURL('image/jpeg', .9);
 }
 
 function hasAlpha(bmp) {

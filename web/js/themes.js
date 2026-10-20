@@ -12,6 +12,15 @@ export const FONTS = {
   'Bodoni Moda': { kind: 'serif', axes: 'ital,wght@0,400;0,600;1,400' },
   'DM Serif Display': { kind: 'serif', axes: 'ital@0;1' },
   'Libre Baskerville': { kind: 'serif', axes: 'ital,wght@0,400;0,700;1,400' },
+  'Cormorant': { kind: 'serif', axes: 'ital,wght@0,400;0,600;1,400' },
+  'Prata': { kind: 'serif', axes: '' },
+  'Marcellus': { kind: 'serif', axes: '' },
+  'Gilda Display': { kind: 'serif', axes: '' },
+  'Forum': { kind: 'serif', axes: '' },
+  'Cinzel Decorative': { kind: 'serif', axes: 'wght@400;700' },
+  'Abril Fatface': { kind: 'serif', axes: '' },
+  'Yeseva One': { kind: 'serif', axes: '' },
+  'Old Standard TT': { kind: 'serif', axes: 'ital,wght@0,400;0,700;1,400' },
   // Sans
   'Montserrat': { kind: 'sans', axes: 'ital,wght@0,300;0,400;0,600;1,400' },
   'Raleway': { kind: 'sans', axes: 'wght@300;400;600' },
@@ -23,6 +32,14 @@ export const FONTS = {
   'Quicksand': { kind: 'sans', axes: 'wght@400;600' },
   'Fredoka': { kind: 'sans', axes: 'wght@400;600' },
   'Baloo 2': { kind: 'sans', axes: 'wght@400;600;800' },
+  'Jost': { kind: 'sans', axes: 'wght@300;400;600' },
+  'Tenor Sans': { kind: 'sans', axes: '' },
+  'Outfit': { kind: 'sans', axes: 'wght@300;400;600' },
+  'Work Sans': { kind: 'sans', axes: 'wght@300;400;600' },
+  'Manrope': { kind: 'sans', axes: 'wght@300;400;600' },
+  'DM Sans': { kind: 'sans', axes: 'wght@400;600' },
+  'Lexend': { kind: 'sans', axes: 'wght@300;400;600' },
+  'Comfortaa': { kind: 'sans', axes: 'wght@400;600' },
   // Handwriting / script
   'Great Vibes': { kind: 'script', axes: '' },
   'Parisienne': { kind: 'script', axes: '' },
@@ -35,6 +52,21 @@ export const FONTS = {
   'Pacifico': { kind: 'script', axes: '' },
   'Homemade Apple': { kind: 'script', axes: '' },
   'Mrs Saint Delafield': { kind: 'script', axes: '' },
+  'Tangerine': { kind: 'script', axes: 'wght@400;700' },
+  'Italianno': { kind: 'script', axes: '' },
+  'Monsieur La Doulaise': { kind: 'script', axes: '' },
+  'Rouge Script': { kind: 'script', axes: '' },
+  'Herr Von Muellerhoff': { kind: 'script', axes: '' },
+  'Petit Formal Script': { kind: 'script', axes: '' },
+  'Imperial Script': { kind: 'script', axes: '' },
+  'WindSong': { kind: 'script', axes: '' },
+  'Ephesis': { kind: 'script', axes: '' },
+  'Birthstone': { kind: 'script', axes: '' },
+  'Satisfy': { kind: 'script', axes: '' },
+  'Kaushan Script': { kind: 'script', axes: '' },
+  'Cookie': { kind: 'script', axes: '' },
+  'La Belle Aurore': { kind: 'script', axes: '' },
+  'Reenie Beanie': { kind: 'script', axes: '' },
 };
 
 const FALLBACK = { serif: 'Georgia, "Times New Roman", serif', sans: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', script: 'cursive' };
@@ -127,13 +159,16 @@ function textureImage(kind, t) {
   return 'none';
 }
 
+/** Everything the editor can change on top of a preset (empty = the preset's value). */
+export const THEME_KEYS = ['primary', 'secondary', 'bg', 'paper', 'ink', 'envelope', 'envelopeInner', 'envelopeInk', 'seal', 'sealInk', 'curtain',
+  'fontTitle', 'fontBody', 'fontScript', 'fontName', 'texture', 'particles'];
+
 /** Preset + the user's overrides (empty values keep the preset's). */
 export function resolveTheme(themeCfg = {}) {
   const base = THEMES[themeCfg.preset] || THEMES.crema;
-  const t = { ...base };
-  for (const k of ['primary', 'secondary', 'fontTitle', 'fontBody', 'fontScript', 'texture', 'particles']) {
-    if (themeCfg[k]) t[k] = themeCfg[k];
-  }
+  const t = { ...base, fontName: base.fontName || base.fontScript, envelopeInk: base.envelopeInk || (base.dark ? base.primary : base.ink) };
+  for (const k of THEME_KEYS) if (themeCfg[k]) t[k] = themeCfg[k];
+  if (themeCfg.ink && !themeCfg.muted) t.muted = `color-mix(in srgb, ${t.ink} 68%, ${t.paper})`;
   return t;
 }
 
@@ -144,7 +179,8 @@ export function applyTheme(themeCfg, root = document.documentElement) {
     '--primary': t.primary, '--secondary': t.secondary,
     '--envelope': t.envelope, '--envelope-inner': t.envelopeInner,
     '--seal': t.seal, '--seal-ink': t.sealInk, '--curtain': t.curtain,
-    '--envelope-ink': t.envelopeInk || (t.dark ? t.primary : t.ink),
+    '--envelope-ink': t.envelopeInk,
+    '--font-name': fontStack(t.fontName),
     '--font-title': fontStack(t.fontTitle), '--font-body': fontStack(t.fontBody), '--font-script': fontStack(t.fontScript),
     '--texture': textureImage(t.texture, t),
     '--texture-size': t.texture === 'dots' ? '22px 22px' : t.texture === 'watercolor' ? '100% 100%' : 'auto',
@@ -152,7 +188,7 @@ export function applyTheme(themeCfg, root = document.documentElement) {
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
   root.dataset.dark = t.dark ? '1' : '0';
   root.dataset.decor = t.decor;
-  loadFonts([t.fontTitle, t.fontBody, t.fontScript]);
+  loadFonts([t.fontTitle, t.fontBody, t.fontScript, t.fontName]);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = t.bg;
   return t;

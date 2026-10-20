@@ -33,6 +33,12 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       `cania-storage` SOLO bajo el prefijo `invitaciones/` (bucket compartido: nunca tocar otros prefijos).
       ffmpeg disponible en el VPS dentro de la imagen de aula-interactiva (usar `docker run --rm`, no el contenedor vivo).
 - [x] 2026-10-20: plataforma con panel, plantillas (8), editor con guardado automático y subida por partes.
+- [x] 2026-10-20 (noche), pedidos de Manuel: **video sin pérdida** (`media._plan`: si el navegador reproduce el códec
+      solo se copian las pistas —remux con faststart—; HEVC/ProRes → H.264 CRF 15 misma resolución; MP3 tal cual),
+      **video en loop** y sin "Ver otra vez", **imagen como invitación** (`media.image.intro`; `introMedia()`),
+      **horizontal en celular**: aviso animado para girar → pantalla completa → al "Continuar" aviso para volver a
+      ponerlo derecho. **Todo personalizable**: `THEME_KEYS` (colores de invitación, sobre, sello, nombre; `fontName`
+      = letra del nombre), sello con imagen propia (`seal.type = image`), selector visual de letras (70 fuentes).
 - [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 
