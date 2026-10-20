@@ -47,6 +47,12 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       (`closing.title`, por defecto "¡Te esperamos!"). **Sonidos** sintetizados (`sfx.js`: sello, papel, carta, campanita,
       secciones, continuar) y **música incluida** (`music.src = builtin:<id>`, 4 melodías) además de MP3 propio.
       **Invitados**: subir varios videos a la vez; cada archivo se asigna al invitado por su nombre (o lo crea).
+- [x] 2026-10-21: video/imagen de la invitación **sin marcos** (sin tarjeta ni franjas negras) y **sin controles**
+      (loop, sin PiP; botón discreto de sonido). Horizontal en celular vertical: la página **gira el video 90°** (`.rotated`)
+      y llena la pantalla —funciona con la rotación automática bloqueada—; si el celular sí gira, `.full`. "Continuar"
+      no espera: aviso breve de volver a ponerlo derecho y sigue. **Música durante el video** (`music.duringVideo`:
+      `music` = suena la música y el video va en silencio —por defecto—, `video` = suena el video); la música se
+      "desbloquea" en el toque del sobre (`music.prime()`) para que los celulares la dejen sonar después.
 - [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 

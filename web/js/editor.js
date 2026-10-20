@@ -461,7 +461,10 @@ function soundTab() {
         h('div', { class: `tile${mus.src && !builtin ? ' on' : ''}`, role: 'button', tabindex: 0, onclick: () => { if (builtin) { mus.src = ''; changed({ rebuild: true }); } } },
           h('span', { class: 'big' }, '🎧'), 'Mi canción', h('small', null, 'MP3 o enlace'))),
       (!builtin) && mediaField('Tu canción', 'music.src', { kind: 'audio', help: 'Se repite mientras la invitación está abierta. Hay un botón para pausarla.' }),
-      field('Volumen', 'music.volume', { type: 'select', number: true, options: [[0.3, 'Bajo'], [0.6, 'Medio'], [0.9, 'Alto']] })),
+      field('Volumen', 'music.volume', { type: 'select', number: true, options: [[0.3, 'Bajo'], [0.6, 'Medio'], [0.9, 'Alto']] }),
+      cfg.sections.media.enabled && cfg.sections.media.kind === 'video' && cfg.sections.media.video.intro && h('div', { class: 'field' },
+        h('span', null, 'Mientras se ve el video de la invitación'),
+        choices('music.duringVideo', [['music', '🎵 Suena la música (video en silencio)'], ['video', '🎬 Suena el video (la música después)']], { rebuild: true }))),
     card({ icon: '🔔', title: 'Efectos de sonido', toggle: 'sounds.enabled', sub: 'Sello, papel, campanita y transiciones suaves' },
       h('div', { class: 'choices' }, [['crack', 'Sello'], ['paper', 'Papel'], ['slide', 'Carta'], ['chime', 'Campanita'], ['page', 'Sección'], ['whoosh', 'Continuar']].map(([k, t]) =>
         h('button', { class: 'choice', type: 'button', onclick: () => { sfx.init(); sfx.configure({ enabled: true, volume: cfg.sounds.volume }); sfx.play(k); } }, `▶ ${t}`))),

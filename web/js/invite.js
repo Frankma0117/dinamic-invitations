@@ -60,12 +60,15 @@ function render(raw, { replay = false, as } = {}) {
   };
   const iv = introMedia(cfg);
   let ivEl = null;
+  // Music + an invitation video: by default the music plays and the video is silent (a designed card); or the video's own sound.
+  const musicWithVideo = !!music && iv?.kind === 'video' && cfg.music.duringVideo !== 'video';
   const afterOpen = () => {
     opened = true;
     if (cfg.opening.confetti) confettiBurst(colors);
     if (iv) {
-      if (iv.kind === 'video') music?.pause();
-      const close = playIntroMedia(iv, { videoEmbed, el: ivEl, decor: theme.decor, sound, onEnd: () => { if (iv.kind === 'video') music?.play(); showCard(); } });
+      if (iv.kind === 'video' && !musicWithVideo) music?.pause();
+      const close = playIntroMedia(iv, { videoEmbed, el: ivEl, decor: theme.decor, sound, silent: musicWithVideo,
+        onEnd: () => { if (iv.kind === 'video' && !musicWithVideo) music?.play(); music?.show(); showCard(); } });
       cleanups.push(close);
     } else showCard();
   };
@@ -86,7 +89,12 @@ function render(raw, { replay = false, as } = {}) {
   cleanups.push(playOpening(cfg, {
     guest: name, decor: theme.decor, sound,
     onTap: () => {
-      sfx.init(); if (iv?.kind === 'video') ivEl = prepareIntroVideo(iv); else music?.play(); },
+      sfx.init();
+      if (iv?.kind === 'video') {
+        ivEl = prepareIntroVideo(iv);
+        if (musicWithVideo) { ivEl && (ivEl.muted = true); music.play(); } else music?.prime();
+      } else music?.play();
+    },
     onReveal: () => { if (!iv) showCard(); },
     onDone: afterOpen,
   }));

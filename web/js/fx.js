@@ -161,7 +161,12 @@ export function createMusic(m) {
     const audio = new Audio();
     audio.src = m.src; audio.loop = true; audio.preload = 'auto'; audio.volume = vol;
     audio.addEventListener('play', () => sync()); audio.addEventListener('pause', () => sync());
-    player = { play: () => audio.play(), pause: () => audio.pause(), get playing() { return !audio.paused; }, stop: () => { audio.pause(); audio.src = ''; } };
+    player = {
+      play: () => audio.play(), pause: () => audio.pause(), get playing() { return !audio.paused; },
+      stop: () => { audio.pause(); audio.src = ''; },
+      // Started and stopped inside the guest's tap: after that the phone lets it play whenever we want.
+      prime: () => { audio.muted = true; const p = audio.play(); audio.pause(); audio.muted = false; p?.catch?.(() => {}); },
+    };
   }
   const btn = h('button', { class: 'music-btn', type: 'button', 'aria-label': 'Pausar o reanudar la música', hidden: true },
     h('span', { class: 'mb-icon', svg: ICONS.music }),
@@ -174,6 +179,7 @@ export function createMusic(m) {
     play() { btn.hidden = false; return play(); },
     pause() { player.pause(); sync(); },
     show() { btn.hidden = false; },
+    prime() { player.prime?.(); },
     destroy() { player.pause(); player.stop?.(); btn.remove(); },
     get playing() { return player.playing; },
   };

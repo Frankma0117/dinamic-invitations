@@ -28,7 +28,9 @@ export const DEFAULTS = {
   sounds: { enabled: true, volume: 0.7 },     // seal, paper, page transitions (synthesized, no files)
   theme: { preset: 'crema' },                // + any key of THEME_KEYS (themes.js) to change a color or a font
 
-  music: { enabled: false, src: '', title: '', volume: 0.6 },   // src: file/URL or "builtin:<id>" (sfx.js MELODIES)
+  // src: file/URL or "builtin:<id>" (sfx.js MELODIES). duringVideo: 'music' = the music plays and the invitation video
+  // is silent; 'video' = the video's own sound, the music starts on "Continuar".
+  music: { enabled: false, src: '', title: '', volume: 0.6, duringVideo: 'music' },
   sections: {
     // pretitle → title → names (subtitle); then greeting + the guest's name ("Querida tutora · Carolina").
     header: { enabled: true, pretitle: '', title: '', names: '', greeting: '', guestPosition: 'after' },

@@ -181,36 +181,40 @@ const SPEAKER_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5
 const PHONE = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="52" rx="5"/><path d="M29 52h6"/></svg>';
 
 /**
- * The video or image that IS the invitation, framed as a paper card in the theme's colors, right after the letter opens.
- * Horizontal media on a phone held upright: an animation asks to turn the phone and, once turned, it fills the
- * screen; on "Continuar" another animation asks to turn it back before the rest of the invitation shows.
+ * The video or image that IS the invitation, shown clean on the invitation's background (no frame).
+ * Horizontal media on a phone held upright is turned 90° by the page itself and fills the screen, so the guest only
+ * has to turn the phone — it works even with the phone's auto-rotate locked. If the phone does rotate, it simply
+ * shows full screen. "Continuar" never waits for the phone: a short "turn it back" note and the invitation goes on.
  */
-export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => {} }) {
+export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => {}, silent = false }) {
   const html = document.documentElement;
   const isPhone = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
   const portrait = matchMedia('(orientation: portrait)');
-  let media, done = false, wide = false, leaving = false, skipped = false;
+  let media, done = false, wide = false, upright = false, hintTimer = 0;
 
   const finish = () => {
     if (done) return;
     done = true;
     portrait.removeEventListener?.('change', update);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     media.pause?.();
     sound('whoosh');
     box.classList.add('leaving');
-    setTimeout(() => { box.remove(); html.classList.remove('locked'); }, 600);
+    setTimeout(() => { box.remove(); html.classList.remove('locked', 'iv-turned'); }, 600);
     onEnd?.();
   };
   const close = () => {
-    if (isPhone && wide && !portrait.matches) { leaving = true; update(); return; }   // first: phone upright again
+    if (box.classList.contains('rotated') || box.classList.contains('full')) {
+      showHint(true);                            // friendly note, then on its own: nothing to wait for
+      setTimeout(finish, 1600);
+      return;
+    }
     finish();
   };
 
   const cont = h('button', { class: 'btn solid iv-continue', type: 'button', onclick: close }, 'Continuar ›');
-  // With the phone turned the media fills the screen: a big, always visible ✕ to go on.
-  const x = h('button', { class: 'iv-x', type: 'button', 'aria-label': 'Cerrar y continuar', onclick: close },
+  const x = h('button', { class: 'iv-x', type: 'button', 'aria-label': 'Salir de pantalla completa', onclick: () => { upright = true; update(); } },
     h('span', { svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' }));
+  const bigBtn = h('button', { class: 'btn iv-big', type: 'button', hidden: true, onclick: () => { upright = false; update(); } }, '⤢ Ver en grande');
   let soundBtn = null;
   if (m.kind === 'image') {
     media = h('img', { src: m.src, alt: m.alt || '', decoding: 'async' });
@@ -218,9 +222,9 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
     if (media.complete) setTimeout(measure); else media.addEventListener('load', measure);
   } else if (m.src) {
     media = el || h('video', { src: m.src, playsinline: true, preload: 'auto', poster: m.poster || null });
-    // It must feel like part of the card, not like a video player: no controls, no picture-in-picture, no pause on tap.
+    // It must feel like part of the invitation, not like a player: no controls, no picture-in-picture, no pause on tap.
     media.controls = false;
-    media.loop = true;                          // the video plays on repeat until the guest continues
+    media.loop = true;
     media.disablePictureInPicture = true;
     media.setAttribute('disablepictureinpicture', '');
     media.setAttribute('disableremoteplayback', '');
@@ -231,14 +235,17 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
       soundBtn.setAttribute('aria-label', media.muted ? 'Activar sonido' : 'Silenciar');
       soundBtn.replaceChildren(h('span', { svg: media.muted ? SPEAKER_OFF : SPEAKER_ON }), ...(media.muted ? [h('b', null, 'Activar sonido')] : []));
     };
-    soundBtn = h('button', { class: 'iv-sound', type: 'button', onclick: () => { media.muted = !media.muted; media.play().catch(() => {}); paintSound(); } });
-    media.addEventListener('volumechange', paintSound);
-    paintSound();
+    if (silent) media.muted = true;              // the background music is playing instead
+    else {
+      soundBtn = h('button', { class: 'iv-sound', type: 'button', onclick: () => { media.muted = !media.muted; media.play().catch(() => {}); paintSound(); } });
+      media.addEventListener('volumechange', paintSound);
+      paintSound();
+    }
     let last = 0;                               // after the first full round "Continuar" starts to pulse
     media.addEventListener('timeupdate', () => { if (media.currentTime + .5 < last) cont.classList.add('ready'); last = media.currentTime; });
     const measure = () => setWide(media.videoWidth, media.videoHeight);
     if (media.readyState >= 1) setTimeout(measure); else media.addEventListener('loadedmetadata', measure);
-    media.play().catch(() => { media.muted = true; paintSound(); media.play().catch(() => {}); });   // the phone blocked sound: start silent
+    media.play().catch(() => { media.muted = true; if (soundBtn) paintSound(); media.play().catch(() => {}); });   // sound blocked: start silent
   } else {
     media = h('iframe', { src: videoEmbed(m.url, { autoplay: true }).src, title: 'Video', allow: 'autoplay; fullscreen; picture-in-picture', allowfullscreen: true });
     setTimeout(() => cont.classList.add('ready'), 4000);
@@ -248,38 +255,42 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => 
   const hintText = h('p', { class: 'rh-text' });
   const hintBtn = h('button', { class: 'btn', type: 'button' });
   const phone = h('div', { class: 'rh-phone', svg: PHONE });
-  const rotate = h('div', { class: 'rotate-hint', hidden: true, role: 'dialog', 'aria-live': 'polite' }, phone, hintText, hintBtn);
+  const rotate = h('div', { class: 'rotate-hint', hidden: true, role: 'status', 'aria-live': 'polite' }, phone, hintText, hintBtn);
 
-  function setWide(w, hgt) { wide = w > hgt * 1.05; update(); }
   function showHint(back) {
+    clearTimeout(hintTimer);
     rotate.hidden = false;
     phone.className = `rh-phone ${back ? 'to-portrait' : 'to-landscape'}`;
-    hintText.textContent = back ? 'Vuelve a poner tu celular derecho para seguir' : 'Gira tu celular para verla en grande';
-    hintBtn.textContent = back ? 'Seguir así' : 'Ver sin girar';
-    hintBtn.onclick = back ? finish : () => { skipped = true; update(); };
+    hintText.textContent = back ? 'Ya puedes volver a poner tu celular derecho' : 'Gira tu celular para verla en grande';
+    hintBtn.hidden = back;
+    hintBtn.textContent = 'Ver sin girar';
+    hintBtn.onclick = () => { upright = true; update(); };
+    if (!back) hintTimer = setTimeout(() => { rotate.hidden = true; }, 3200);
+  }
+  function setWide(w, hgt) {
+    const first = !wide;
+    wide = w > hgt * 1.05;
+    update();
+    if (first && wide && isPhone && portrait.matches) showHint(false);
   }
   function update() {
     if (done) return;
     const turnable = isPhone && wide;
-    if (leaving) {
-      if (!turnable || portrait.matches) finish(); else showHint(true);
-      return;
-    }
-    if (turnable && !portrait.matches) { rotate.hidden = true; box.classList.add('full'); return; }
-    box.classList.remove('full');
-    if (turnable && !skipped) showHint(false); else rotate.hidden = true;
+    const landscape = !portrait.matches;
+    box.classList.toggle('full', turnable && landscape);                    // the phone rotated by itself
+    box.classList.toggle('rotated', turnable && !landscape && !upright);    // auto-rotate locked: the page turns it
+    bigBtn.hidden = !(turnable && !landscape && upright);
+    html.classList.toggle('iv-turned', box.classList.contains('full') || box.classList.contains('rotated'));   // music button out of the way
+    if (box.classList.contains('full') || upright) { clearTimeout(hintTimer); rotate.hidden = true; }
   }
-  portrait.addEventListener?.('change', update);
+  portrait.addEventListener?.('change', () => { if (!portrait.matches) upright = false; update(); });
 
-  const art = corners(decor);
   const box = h('div', { class: `intro-video${m.kind === 'image' ? ' is-image' : ''}` },
-    h('div', { class: 'iv-card' },
-      art && h('div', { class: 'corner tl', 'aria-hidden': 'true', svg: art }),
-      art && h('div', { class: 'corner br', 'aria-hidden': 'true', svg: art }),
-      h('div', { class: 'ornament small iv-orn', svg: ornament(decor) }),
+    h('div', { class: 'iv-stage' },
       h('div', { class: `iv-frame${m.kind === 'image' ? ' image' : m.src ? '' : ' embed'}` }, media, soundBtn),
-      h('div', { class: 'btn-row iv-actions' }, cont)),
-    x, rotate);
+      h('div', { class: 'iv-actions' }, bigBtn, cont),
+      x),
+    rotate);
   if (m.kind === 'image') setTimeout(() => cont.classList.add('ready'), 3500);
   document.body.append(box);
   html.classList.add('locked');
