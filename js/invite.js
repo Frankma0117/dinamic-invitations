@@ -3,7 +3,7 @@
 import { loadConfig, normalize, forGuest, introVideo, fixSlugs } from './config.js';
 import { applyTheme } from './themes.js';
 import { renderInvitation } from './render.js';
-import { playOpening, playIntroVideo } from './opening.js';
+import { playOpening, playIntroVideo, prepareIntroVideo } from './opening.js';
 import { startParticles, startReveal, startAutoVideos, startCountdown, createMusic } from './fx.js';
 import { h, videoEmbed, reducedMotion } from './util.js';
 
@@ -62,13 +62,14 @@ function render(raw, { replay = false, as } = {}) {
     document.documentElement.classList.add('opened');
     cleanups.push(startReveal(app), startAutoVideos(app));
   };
+  const iv = introVideo(cfg);
+  let ivEl = null;
   const afterOpen = () => {
     opened = true;
     if (cfg.opening.confetti) confettiBurst(colors);
-    const iv = introVideo(base);
     if (iv) {
       music?.pause();
-      const close = playIntroVideo(iv, { videoEmbed, onEnd: () => { music?.play(); showCard(); } });
+      const close = playIntroVideo(iv, { videoEmbed, el: ivEl, decor: theme.decor, onEnd: () => { music?.play(); showCard(); } });
       cleanups.push(close);
     } else showCard();
   };
@@ -88,8 +89,8 @@ function render(raw, { replay = false, as } = {}) {
   }
   cleanups.push(playOpening(cfg, {
     guest: name, decor: theme.decor,
-    onTap: () => { if (!introVideo(base)) music?.play(); },
-    onReveal: () => { if (!introVideo(base)) showCard(); },
+    onTap: () => { if (iv) ivEl = prepareIntroVideo(iv); else music?.play(); },
+    onReveal: () => { if (!iv) showCard(); },
     onDone: afterOpen,
   }));
 }

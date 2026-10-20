@@ -20,7 +20,7 @@ const base = (arg('url') || process.env.SITE_URL || raw.meta?.url || '').replace
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-for (const item of ['css', 'js', 'assets', 'editor']) await cp(join(root, item), join(out, item), { recursive: true });
+for (const item of ['css', 'js', 'assets', 'editor', 'ejemplos']) await cp(join(root, item), join(out, item), { recursive: true });
 
 // Embedded files → assets/media/<hash>.<ext> (the same file is written once).
 await mkdir(join(out, 'assets', 'media'), { recursive: true });

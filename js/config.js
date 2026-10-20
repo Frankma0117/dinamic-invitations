@@ -13,7 +13,7 @@ export const DEFAULTS = {
   meta: { title: '', description: '', image: '', url: '' },        // Open Graph (vista previa al compartir)
   guest: { param: 'para', fallback: 'Para ti', seatsText: 'Pase válido para {cupos} persona(s)' },   // ?para=Laura%20Gómez
   // Invitados con enlace propio (/laura-gomez/): cada campo vacío usa el general.
-  // { slug, name, phone, greeting, message, image (imagen principal y de la vista previa en WhatsApp), seats }
+  // { slug, name, phone, greeting, message, image (imagen principal y de la vista previa en WhatsApp), video, seats }
   guests: [],
   share: { message: 'Hola {nombre} 💌 Te comparto tu invitación: {enlace}' },   // texto al enviar el enlace por WhatsApp
   event: { name: '', date: '', time: '', endTime: '', tz: '-05:00', venue: '', address: '' },
@@ -91,7 +91,7 @@ export function fixSlugs(guests) {
   const seen = new Set();
   for (const g of guests) {
     let base = slugify(g.slug || g.name), n = 2;
-    if (['assets', 'css', 'js', 'editor', 'media'].includes(base)) base += '-inv';   // folders of the site
+    if (['assets', 'css', 'js', 'editor', 'media', 'ejemplos'].includes(base)) base += '-inv';   // folders of the site
     let s = base;
     while (seen.has(s)) s = `${base}-${n++}`;
     g.slug = s; seen.add(s);
@@ -99,19 +99,24 @@ export function fixSlugs(guests) {
   return guests;
 }
 
-/** The config as this guest sees it: their image, greeting and message replace the general ones. */
+/** The config as this guest sees it: their video, image, greeting and message replace the general ones. */
 export function forGuest(cfg, g) {
   if (!g) return cfg;
   const c = structuredClone(cfg);
-  const sec = c.sections;
+  const sec = c.sections, media = sec.media;
   if (g.greeting) sec.header.greeting = g.greeting;
   if (g.message) sec.message.text = g.message;
+  if (g.video) {
+    // Their own video (e.g. one with their name): same presentation as the general one, another file.
+    media.enabled = true;
+    media.kind = 'video';
+    const isLink = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\//.test(g.video);
+    media.video = { ...media.video, src: isLink ? '' : g.video, url: isLink ? g.video : '' };
+  }
   if (g.image) {
-    // A full-screen intro video still plays (introVideo() reads the general config); the card shows their image.
-    sec.media.enabled = true;
-    sec.media.kind = 'image';
-    sec.media.image.src = g.image;
-    c.meta.image = g.image;
+    c.meta.image = g.image;                     // always the WhatsApp preview
+    if (introVideo(c)) media.video.poster = g.image;
+    else { media.enabled = true; media.kind = 'image'; media.image.src = g.image; }
   }
   return c;
 }

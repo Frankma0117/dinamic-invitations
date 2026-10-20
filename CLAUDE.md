@@ -18,6 +18,15 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       contenedor `invitaciones-web-1` en 127.0.0.1:5700, `.env` con SITE_URL). El editor queda público en `/editor/`
       (no guarda nada en el servidor). **Pendiente de Manuel**: `sudo bash /opt/invitaciones/scripts/sudo-setup.sh
       invitaciones.cania.app` (sitio nginx + HTTPS; pide su contraseña).
+- [x] 2026-10-20: **tema Botánico** (crema + verde bosque + salvia, sello dorado con corazón, eucalipto con flores de
+      nube generado en `decor.js` → esquinas de la tarjeta) a partir de la invitación "Prom" que mandó Manuel.
+      **Video como invitación**: el sobre abre y el video sale en una tarjeta de papel del tema (`playIntroVideo`:
+      Ver en grande / Continuar / Ver otra vez); el `<video>` se crea y se "desbloquea" en el toque para que suene.
+      **Video por invitado** (`guests[].video`, el video trae su nombre); su `image` = vista previa de WhatsApp y póster.
+      Ejemplos para el editor en `ejemplos/` (grado.json, prom.json).
+- [ ] Videos: Manuel los manda; servirlos desde el VPS (`assets/videos/`) o, si pesan mucho, desde Spaces
+      `cania-storage` SOLO bajo el prefijo `invitaciones/` (bucket compartido: nunca tocar otros prefijos).
+      ffmpeg disponible en el VPS dentro de la imagen de aula-interactiva (usar `docker run --rm`, no el contenedor vivo).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 
 ## Infraestructura

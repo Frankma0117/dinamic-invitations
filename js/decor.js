@@ -75,3 +75,56 @@ export const ICONS = {
   arrowL: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>',
   arrowR: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>',
 };
+
+/* ---------- Botanical: eucalyptus branches with baby's breath, drawn from code ---------- */
+
+// Point and direction on a cubic Bézier.
+function bez(p, t) {
+  const u = 1 - t;
+  const pt = i => u * u * u * p[0][i] + 3 * u * u * t * p[1][i] + 3 * u * t * t * p[2][i] + t * t * t * p[3][i];
+  const d = i => 3 * u * u * (p[1][i] - p[0][i]) + 6 * u * t * (p[2][i] - p[1][i]) + 3 * t * t * (p[3][i] - p[2][i]);
+  return { x: pt(0), y: pt(1), a: Math.atan2(d(1), d(0)) * 180 / Math.PI };
+}
+
+function branch(p, { leaves = 9, size = 11, flowers = [] } = {}) {
+  const [a, b, c, d] = p;
+  let out = `<path d="M${a} C${b} ${c} ${d}" style="fill:none;stroke:var(--primary);stroke-width:1.3;stroke-linecap:round;opacity:.8"/>`;
+  for (let i = 0; i < leaves; i++) {
+    const t = .08 + (i / leaves) * .9;
+    const q = bez(p, t);
+    const side = i % 2 ? 1 : -1;
+    const r = size * (1 - t * .45);
+    const ang = q.a + side * 55;
+    const ox = Math.cos(ang * Math.PI / 180) * r * .9, oy = Math.sin(ang * Math.PI / 180) * r * .9;
+    const fill = i % 3 === 1 ? 'var(--primary)' : 'var(--secondary)';
+    out += `<ellipse cx="${(q.x + ox).toFixed(1)}" cy="${(q.y + oy).toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r * .72).toFixed(1)}" transform="rotate(${ang.toFixed(0)} ${(q.x + ox).toFixed(1)} ${(q.y + oy).toFixed(1)})" style="fill:${fill};opacity:${i % 3 === 1 ? .55 : .8}"/>`;
+    out += `<path d="M${q.x.toFixed(1)} ${q.y.toFixed(1)} L${(q.x + ox * 1.7).toFixed(1)} ${(q.y + oy * 1.7).toFixed(1)}" style="stroke:var(--paper);stroke-width:.5;opacity:.5"/>`;
+  }
+  for (const [x, y, n] of flowers) {
+    for (let k = 0; k < n; k++) {
+      const fx = x + Math.cos(k * 2.4) * (4 + k * 1.6), fy = y + Math.sin(k * 2.4) * (4 + k * 1.6);
+      out += `<path d="M${x} ${y} L${fx.toFixed(1)} ${fy.toFixed(1)}" style="stroke:var(--secondary);stroke-width:.5"/>`;
+      out += `<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="${(2.2 + (k % 3) * .5).toFixed(1)}" style="fill:#fffdf6;stroke:var(--secondary);stroke-width:.6"/>`;
+    }
+  }
+  return out;
+}
+
+const BOT_CORNER = `<svg viewBox="0 0 220 220" aria-hidden="true">${
+  branch([[0, 210], [40, 150], [70, 70], [150, 10]], { leaves: 12, size: 13, flowers: [[55, 120, 9], [110, 40, 7]] })
+}${branch([[0, 120], [30, 110], [60, 90], [90, 60]], { leaves: 6, size: 9, flowers: [[80, 70, 6]] })
+}${branch([[10, 215], [80, 200], [140, 190], [215, 150]], { leaves: 9, size: 10, flowers: [[160, 180, 8]] })}</svg>`;
+
+const HEART = `<path d="M100 44c-6-8-18-6-18 4 0 8 10 14 18 20 8-6 18-12 18-20 0-10-12-12-18-4z" style="fill:none;stroke:var(--primary);stroke-width:1.4"/>`;
+ORNAMENTS.botanical = `<svg viewBox="0 0 200 80" aria-hidden="true">${
+  branch([[96, 56], [70, 60], [45, 52], [8, 30]], { leaves: 8, size: 8, flowers: [[30, 42, 6]] })
+}${branch([[104, 56], [130, 60], [155, 52], [192, 30]], { leaves: 8, size: 8, flowers: [[170, 42, 6]] })}${HEART}</svg>`;
+
+const DIVIDERS = {
+  botanical: `<svg viewBox="0 0 160 20" aria-hidden="true"><path d="M20 10h52M88 10h52" style="stroke:var(--primary);stroke-width:.8;opacity:.6"/><path d="M80 15c-4-3-8-5-8-8 0-3 4-4 8-1 4-3 8-2 8 1 0 3-4 5-8 8z" style="fill:var(--primary);opacity:.8"/></svg>`,
+};
+const baseDivider = divider;
+export function sectionDivider(decor) { return DIVIDERS[decor] || baseDivider(decor); }
+
+/** Corner art for the card (null if the style has none). */
+export const corners = decor => (decor === 'botanical' ? BOT_CORNER : null);

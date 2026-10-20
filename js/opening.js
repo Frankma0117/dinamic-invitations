@@ -1,7 +1,7 @@
 // Opening sequence: envelope (default), diptych card, curtain, or none. GSAP drives the timelines;
 // without GSAP or with prefers-reduced-motion it falls back to a short fade.
 import { h, reducedMotion } from './util.js';
-import { sealIcon, ornament } from './decor.js';
+import { sealIcon, ornament, corners } from './decor.js';
 
 function seal(cfg) {
   const s = cfg.opening.seal;
@@ -20,7 +20,7 @@ function letterPreview(cfg, decor) {
   return h('div', { class: 'letter-in' },
     h('div', { class: 'ornament small', svg: ornament(decor) }),
     hd.title && h('p', { class: 'letter-title' }, hd.title),
-    hd.names && h('p', { class: 'letter-names' }, hd.names));
+    hd.names && h('p', { class: hd.names.length > 16 ? 'letter-names long' : 'letter-names' }, hd.names));
 }
 
 const BUILD = {
@@ -153,22 +153,64 @@ const TIMELINES = {
   },
 };
 
-/** Full-screen video right after opening, with "Continuar". */
-export function playIntroVideo(v, { videoEmbed, onEnd }) {
-  const close = () => { box.remove(); document.documentElement.classList.remove('locked'); onEnd?.(); };
-  const cont = h('button', { class: 'btn solid iv-continue', type: 'button', onclick: close }, 'Continuar');
-  let media;
+/**
+ * Creates the <video> inside the tap: starting and pausing it there is what lets phones play it WITH sound a few
+ * seconds later, when the letter has opened (iPhone/Android only allow sound after a touch).
+ */
+export function prepareIntroVideo(v) {
+  if (!v?.src) return null;
+  const el = h('video', { src: v.src, playsinline: true, preload: 'auto', poster: v.poster || null });
+  const p = el.play();
+  el.pause();
+  p?.catch?.(() => {});
+  return el;
+}
+
+function bigScreen(video) {
+  const req = video.requestFullscreen || video.webkitRequestFullscreen;
+  if (!req && video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); return; }   // iPhone
+  if (!req) return;
+  Promise.resolve(req.call(video))
+    .then(() => screen.orientation?.lock?.('landscape'))
+    .catch(() => {});
+}
+
+/** The video framed as a paper card in the theme's colors, right after the letter opens. */
+export function playIntroVideo(v, { videoEmbed, el, decor, onEnd }) {
+  const html = document.documentElement;
+  let media, done = false;
+  const close = () => {
+    if (done) return;
+    done = true;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    media.pause?.();
+    box.classList.add('leaving');
+    setTimeout(() => { box.remove(); html.classList.remove('locked'); }, 600);
+    onEnd?.();
+  };
+  const cont = h('button', { class: 'btn solid iv-continue', type: 'button', onclick: close }, 'Continuar ›');
+  const again = h('button', { class: 'btn', type: 'button', hidden: true }, '↺ Ver otra vez');
+  let big = null;
   if (v.src) {
-    media = h('video', { src: v.src, playsinline: true, autoplay: true, controls: true, poster: v.poster || null });
-    media.addEventListener('ended', () => cont.classList.add('ready'));
+    media = el || h('video', { src: v.src, playsinline: true, preload: 'auto', poster: v.poster || null });
+    media.controls = true;
+    media.addEventListener('ended', () => { cont.classList.add('ready'); again.hidden = false; });
+    again.onclick = () => { media.currentTime = 0; media.play().catch(() => {}); again.hidden = true; };
     media.play().catch(() => { media.muted = true; media.play().catch(() => {}); });
+    big = h('button', { class: 'btn', type: 'button', onclick: () => bigScreen(media) }, '⛶ Ver en grande');
   } else {
-    const emb = videoEmbed(v.url, { autoplay: true });
-    media = h('iframe', { src: emb.src, title: 'Video', allow: 'autoplay; fullscreen; picture-in-picture', allowfullscreen: true });
+    media = h('iframe', { src: videoEmbed(v.url, { autoplay: true }).src, title: 'Video', allow: 'autoplay; fullscreen; picture-in-picture', allowfullscreen: true });
     setTimeout(() => cont.classList.add('ready'), 4000);
   }
-  const box = h('div', { class: 'intro-video' }, h('div', { class: 'iv-frame' }, media), cont);
+  const art = corners(decor);
+  const box = h('div', { class: 'intro-video' },
+    h('div', { class: 'iv-card' },
+      art && h('div', { class: 'corner tl', 'aria-hidden': 'true', svg: art }),
+      art && h('div', { class: 'corner br', 'aria-hidden': 'true', svg: art }),
+      h('div', { class: 'ornament small iv-orn', svg: ornament(decor) }),
+      h('div', { class: `iv-frame${v.src ? '' : ' embed'}` }, media),
+      h('div', { class: 'btn-row iv-actions' }, again, big, cont)));
   document.body.append(box);
-  document.documentElement.classList.add('locked');
+  html.classList.add('locked');
   return close;
 }

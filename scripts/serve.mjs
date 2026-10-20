@@ -30,7 +30,7 @@ createServer(async (req, res) => {
     const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (path === '/' || path === '/index.html') return send(res, 200, TYPES['.html'], await page(null));
     const m = path.match(/^\/([a-z0-9-]+)\/?$/);
-    if (m && !['assets', 'css', 'js', 'editor'].includes(m[1])) {
+    if (m && !['assets', 'css', 'js', 'editor', 'ejemplos'].includes(m[1])) {
       if (!path.endsWith('/')) { res.writeHead(301, { Location: path + '/' }); return res.end(); }
       const html = await page(m[1]);
       if (html) return send(res, 200, TYPES['.html'], html);

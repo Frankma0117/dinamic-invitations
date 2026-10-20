@@ -1,7 +1,7 @@
 // Builds the invitation's sections. A section that is off or empty is not rendered at all.
 import { h, paragraphs, filled, formatDate, formatTime, fillTemplate, waLink, videoEmbed, googleCalendarUrl, downloadIcs } from './util.js';
 import { SECTION_ORDER, eventName } from './config.js';
-import { ornament, divider, ICONS } from './decor.js';
+import { ornament, sectionDivider, corners, ICONS } from './decor.js';
 
 const icon = (name, cls = 'ic') => h('span', { class: cls, svg: ICONS[name] });
 
@@ -23,7 +23,7 @@ const BUILD = {
       ctx.guest && h('p', { class: 'guest-name' }, ctx.guest),
       ctx.seats > 0 && h('p', { class: 'seats' }, fillTemplate(cfg.guest.seatsText || 'Pase para {cupos}', { cupos: ctx.seats }).replace('(s)', ctx.seats === 1 ? '' : 's')),
       filled(s.title) && h('h1', { class: 'title' }, s.title),
-      filled(s.names) && h('p', { class: 'names' }, s.names),
+      filled(s.names) && h('p', { class: s.names.length > 16 ? 'names long' : 'names' }, s.names),
     );
   },
 
@@ -193,8 +193,12 @@ export function renderInvitation(cfg, ctx) {
     if (!s?.enabled) continue;
     const el = BUILD[id](s, cfg, ctx);
     if (!el) continue;
-    if (parts.length && id !== 'countdown' && id !== 'calendar') parts.push(h('div', { class: 'divider', 'aria-hidden': 'true', 'data-reveal': '', svg: divider(ctx.decor) }));
+    if (parts.length && id !== 'countdown' && id !== 'calendar') parts.push(h('div', { class: 'divider', 'aria-hidden': 'true', 'data-reveal': '', svg: sectionDivider(ctx.decor) }));
     parts.push(el);
   }
-  return h('main', { class: 'invite' }, h('article', { class: 'card' }, parts));
+  const art = corners(ctx.decor);
+  return h('main', { class: 'invite' }, h('article', { class: 'card' },
+    art && h('div', { class: 'corner tl', 'aria-hidden': 'true', svg: art }),
+    art && h('div', { class: 'corner br', 'aria-hidden': 'true', svg: art }),
+    parts));
 }

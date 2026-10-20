@@ -352,7 +352,7 @@ function guestsGroup() {
   const addBulk = () => {
     const names = bulk.value.split('\n').map(s => s.trim()).filter(Boolean);
     if (!names.length) return toast('Escribe al menos un nombre');
-    names.forEach(name => guests.push({ slug: '', name, phone: '', greeting: '', message: '', image: '', seats: '' }));
+    names.forEach(name => guests.push({ slug: '', name, phone: '', greeting: '', message: '', image: '', video: '', seats: '' }));
     fixSlugs(guests);
     toast(`${names.length} invitado(s) agregado(s)`);
     changed({ rebuild: true });
@@ -384,7 +384,8 @@ function guestsGroup() {
         h('div', { class: 'row2' },
           field('Saludo propio (opcional)', gp + 'greeting', { placeholder: cfg.sections.header.greeting || 'Querida Laura' }),
           field('Cupos (opcional)', gp + 'seats', { type: 'number', min: 0, max: 50, placeholder: 'ej. 2' })),
-        imageField('Imagen propia (opcional)', gp + 'image', { help: 'Reemplaza la imagen principal y es la que se ve al compartir su enlace.' }),
+        imageField('Imagen propia (opcional)', gp + 'image', { help: 'Es la que se ve al compartir su enlace en WhatsApp (y la imagen principal si no hay video).' }),
+        fileField('Video propio (opcional)', gp + 'video', { accept: 'video/mp4,video/webm', maxMB: 60, help: 'Por ejemplo, el video con su nombre. Se presenta igual que el video general.' }),
         field('Mensaje propio (opcional)', gp + 'message', { type: 'textarea', rows: 3, placeholder: 'Vacío = el mensaje general' }),
         h('label', { class: 'field' }, h('span', null, 'Enlace corto'),
           h('input', { type: 'text', value: g.slug, oninput: e => { g.slug = e.target.value; }, onchange: () => { fixSlugs(guests); changed({ rebuild: true }); } })),
@@ -445,7 +446,9 @@ function renderActions() {
   $('#actions').replaceChildren(
     h('button', { class: 'btn', type: 'button', onclick: () => file.click() }, '📂 Abrir config.json'), file,
     h('button', { class: 'btn primary', type: 'button', onclick: saveFile }, '💾 Guardar config.json'),
-    h('button', { class: 'btn', type: 'button', onclick: resetExample }, '↺ Empezar del ejemplo'),
+    h('select', { class: 'btn', 'aria-label': 'Empezar de un ejemplo', onchange: e => { const v = e.target.value; e.target.value = ''; if (v) resetExample(v); } },
+      h('option', { value: '' }, '↺ Empezar de un ejemplo…'),
+      EXAMPLES.map(([file, label]) => h('option', { value: file }, label))),
   );
 }
 
@@ -457,14 +460,17 @@ function saveFile() {
   toast(mb > 15 ? `Guardado (${mb.toFixed(1)} MB). Es pesado: usa imágenes más livianas o la música como enlace.` : 'config.json descargado', 4000);
 }
 
-async function resetExample() {
-  if (!confirm('¿Descartar tus cambios y cargar el ejemplo? (Guarda antes tu config.json si lo necesitas)')) return;
-  cfg = await fetchConfig();
+const EXAMPLES = [['config.json', 'La invitación publicada'], ['ejemplos/grado.json', 'Fiesta de grado (azul y dorado)'], ['ejemplos/prom.json', 'Prom botánico con video']];
+
+async function resetExample(file) {
+  if (!confirm('¿Descartar tus cambios y cargar ese ejemplo? (Guarda antes tu config.json si lo necesitas)')) return;
+  cfg = await fetchConfig(file);
+  previewAs = '';
   changed({ rebuild: true }); sendPreview(true);
 }
 
-async function fetchConfig() {
-  const res = await fetch(new URL('config.json', SITE), { cache: 'no-cache' });
+async function fetchConfig(file = 'config.json') {
+  const res = await fetch(new URL(file, SITE), { cache: 'no-cache' });
   const c = normalize(res.ok ? await res.json() : {});
   fixSlugs(c.guests);
   return c;

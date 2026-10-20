@@ -33,6 +33,8 @@ export const FONTS = {
   'Pinyon Script': { kind: 'script', axes: '' },
   'Caveat': { kind: 'script', axes: 'wght@400;600' },
   'Pacifico': { kind: 'script', axes: '' },
+  'Homemade Apple': { kind: 'script', axes: '' },
+  'Mrs Saint Delafield': { kind: 'script', axes: '' },
 };
 
 const FALLBACK = { serif: 'Georgia, "Times New Roman", serif', sans: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', script: 'cursive' };
@@ -86,6 +88,12 @@ export const THEMES = {
     curtain: '#3a0d12', fontTitle: 'Playfair Display', fontBody: 'Raleway', fontScript: 'Pinyon Script',
     texture: 'linen', decor: 'deco', particles: 'sparkles', dark: true,
   },
+  botanico: {
+    label: 'Botánico', bg: '#ece6d8', paper: '#f5f0e4', ink: '#2e3a30', muted: '#6e7466',
+    primary: '#2f4a39', secondary: '#9fae93', envelope: '#2f4a39', envelopeInner: '#233a2c', envelopeInk: '#efe3c4',
+    seal: '#b8955a', sealInk: '#6e5325', curtain: '#2f4a39', fontTitle: 'Bodoni Moda', fontBody: 'Montserrat', fontScript: 'Homemade Apple',
+    texture: 'paper', decor: 'botanical', particles: 'none', dark: false,
+  },
 };
 
 export const TEXTURES = {
@@ -136,6 +144,7 @@ export function applyTheme(themeCfg, root = document.documentElement) {
     '--primary': t.primary, '--secondary': t.secondary,
     '--envelope': t.envelope, '--envelope-inner': t.envelopeInner,
     '--seal': t.seal, '--seal-ink': t.sealInk, '--curtain': t.curtain,
+    '--envelope-ink': t.envelopeInk || (t.dark ? t.primary : t.ink),
     '--font-title': fontStack(t.fontTitle), '--font-body': fontStack(t.fontBody), '--font-script': fontStack(t.fontScript),
     '--texture': textureImage(t.texture, t),
     '--texture-size': t.texture === 'dots' ? '22px 22px' : t.texture === 'watercolor' ? '100% 100%' : 'auto',

@@ -7,6 +7,7 @@ COPY css ./css
 COPY js ./js
 COPY assets ./assets
 COPY editor ./editor
+COPY ejemplos ./ejemplos
 COPY scripts ./scripts
 ARG SITE_URL=
 RUN node scripts/build.mjs --out site --url "$SITE_URL"
