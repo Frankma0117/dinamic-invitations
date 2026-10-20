@@ -307,15 +307,17 @@ html.iv-turned .music-btn { top: max(16px, env(safe-area-inset-top)); bottom: au
 
 /* Pantalla completa: el celular giró solo (.full) o la página gira el video (.rotated, sin depender del giro automático) */
 .full .iv-stage, .rotated .iv-stage { padding: 0; gap: 0; background: #000; animation: none; justify-content: center; }
+/* the buttons get their own strip under the video: nothing covers it */
+.full .iv-frame, .rotated .iv-frame { flex: 1; min-height: 0; }
 .full .iv-stage { width: 100%; height: 100%; }
 .rotated .iv-stage { position: fixed; top: 50%; left: 50%; max-width: none; width: 100vh; height: 100vw; width: 100dvh; height: 100dvw; transform: translate(-50%, -50%) rotate(90deg); }
-.full .iv-frame, .rotated .iv-frame { width: 100%; height: 100%; display: grid; place-items: center; border-radius: 0; box-shadow: none; background: #000; }
-.full .iv-frame video, .full .iv-frame img { max-width: 100vw; max-height: 100vh; max-height: 100dvh; }
-.rotated .iv-frame video, .rotated .iv-frame img { max-width: 100vh; max-height: 100vw; max-width: 100dvh; max-height: 100dvw; }
+.full .iv-frame, .rotated .iv-frame { width: 100%; display: grid; place-items: center; border-radius: 0; box-shadow: none; background: #000; }
+.full .iv-frame video, .full .iv-frame img { max-width: 100vw; max-height: calc(100vh - 50px); max-height: calc(100dvh - 50px); }
+.rotated .iv-frame video, .rotated .iv-frame img { max-width: 100vh; max-height: calc(100vw - 50px); max-width: 100dvh; max-height: calc(100dvw - 50px); }
 .full .iv-frame.embed iframe, .rotated .iv-frame.embed iframe { width: 100%; height: 100%; max-height: none; aspect-ratio: auto; }
-.full .iv-actions, .rotated .iv-actions { position: absolute; z-index: 3; top: 10px; right: 56px; }
+.full .iv-actions, .rotated .iv-actions { flex: none; position: relative; z-index: 3; height: 50px; width: 100%; align-items: center; justify-content: center; }
 .full .iv-continue, .rotated .iv-continue { min-height: 34px; padding: 5px 14px; font-size: .82rem; background: rgba(0, 0, 0, .45); color: #fff; border: 1px solid rgba(255, 255, 255, .55); box-shadow: none; backdrop-filter: blur(6px); }
-.full .iv-x, .rotated .iv-x { display: grid; }
+.full .iv-x, .rotated .iv-x { display: grid; top: auto; bottom: 6px; right: 12px; }
 .full .iv-sound, .rotated .iv-sound { left: 14px; bottom: 14px; }
 
 /* Aviso para girar el celular (no bloquea: se va solo) */
