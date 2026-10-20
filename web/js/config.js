@@ -22,12 +22,16 @@ export const DEFAULTS = {
     hint: 'Toca para abrir',
     seal: { type: 'initials', text: '', icon: 'heart', image: '' },   // type: initials | icon | image
     confetti: false,
+    // The letter that comes out of the envelope. Empty = title and subtitle of the header. {nombre} = the guest.
+    letter: { title: '', subtitle: '', text: '', ornament: true },
   },
+  sounds: { enabled: true, volume: 0.7 },     // seal, paper, page transitions (synthesized, no files)
   theme: { preset: 'crema' },                // + any key of THEME_KEYS (themes.js) to change a color or a font
 
-  music: { enabled: false, src: '', title: '', volume: 0.6 },
+  music: { enabled: false, src: '', title: '', volume: 0.6 },   // src: file/URL or "builtin:<id>" (sfx.js MELODIES)
   sections: {
-    header: { enabled: true, greeting: '', title: '', names: '' },
+    // pretitle → title → names (subtitle); then greeting + the guest's name ("Querida tutora · Carolina").
+    header: { enabled: true, pretitle: '', title: '', names: '', greeting: '', guestPosition: 'after' },
     message: { enabled: true, text: '' },
     media: {
       enabled: false, kind: 'image',         // image | video
@@ -47,7 +51,7 @@ export const DEFAULTS = {
       noMessage: 'Hola, soy {nombre}. Lamentablemente no podré asistir a {evento}. ¡Gracias por la invitación!',
     },
     calendar: { enabled: true, title: 'Guarda la fecha' },
-    closing: { enabled: true, text: '', signature: '' },
+    closing: { enabled: true, title: '¡Te esperamos!', text: '', signature: '' },
   },
 };
 
@@ -60,7 +64,13 @@ export function merge(base, over) {
   return out;
 }
 
-export const normalize = cfg => merge(DEFAULTS, cfg || {});
+export function normalize(cfg) {
+  const raw = structuredClone(cfg || {});
+  // Before 2026-10-20 the header had only "greeting", used as the line above the title.
+  const hd = raw.sections?.header;
+  if (hd && !('pretitle' in hd)) { hd.pretitle = hd.greeting || ''; hd.greeting = ''; hd.guestPosition = 'after'; }
+  return merge(DEFAULTS, raw);
+}
 
 export async function loadConfig(url = 'config.json') {
   const res = await fetch(url, { cache: 'no-cache' });

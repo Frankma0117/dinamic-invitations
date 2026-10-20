@@ -1,6 +1,7 @@
 // Visual effects: falling particles, scroll reveal, parallax, countdown and the music button.
 import { h, eventDate, reducedMotion } from './util.js';
 import { ICONS } from './decor.js';
+import { melody } from './sfx.js';
 
 /* ---------- Particles (one light canvas, paused when the tab is hidden) ---------- */
 
@@ -71,8 +72,15 @@ export function startParticles(kind, colors) {
 
 /* ---------- Reveal on scroll + parallax ---------- */
 
-export function startReveal(root) {
+export function startReveal(root, onSection) {
   const els = root.querySelectorAll('[data-reveal]');
+  let secIO = null;
+  if (onSection && 'IntersectionObserver' in window) {     // soft "page" sound as each section scrolls into view
+    secIO = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) { onSection(); secIO.unobserve(e.target); }
+    }, { threshold: .35 });
+    root.querySelectorAll('.sec:not(.sec-header)').forEach(el => secIO.observe(el));
+  }
   if (reducedMotion() || !('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return () => {}; }
   const io = new IntersectionObserver(entries => {
     for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
@@ -93,7 +101,7 @@ export function startReveal(root) {
     });
   };
   if (par.length) { addEventListener('scroll', onScroll, { passive: true }); onScroll(); }
-  return () => { io.disconnect(); removeEventListener('scroll', onScroll); };
+  return () => { io.disconnect(); secIO?.disconnect(); removeEventListener('scroll', onScroll); };
 }
 
 /** Play muted videos only while visible. */
@@ -145,21 +153,28 @@ export function startCountdown(root, cfg) {
 
 export function createMusic(m) {
   if (!m?.enabled || !m.src) return null;
-  const audio = new Audio();
-  audio.src = m.src; audio.loop = true; audio.preload = 'auto';
-  audio.volume = Math.min(1, Math.max(0, Number(m.volume ?? .6)));
+  const vol = Math.min(1, Math.max(0, Number(m.volume ?? .6)));
+  let player;
+  if (m.src.startsWith('builtin:')) {
+    player = melody(m.src.slice(8), vol);       // synthesized melody (sfx.js), no file
+  } else {
+    const audio = new Audio();
+    audio.src = m.src; audio.loop = true; audio.preload = 'auto'; audio.volume = vol;
+    audio.addEventListener('play', () => sync()); audio.addEventListener('pause', () => sync());
+    player = { play: () => audio.play(), pause: () => audio.pause(), get playing() { return !audio.paused; }, stop: () => { audio.pause(); audio.src = ''; } };
+  }
   const btn = h('button', { class: 'music-btn', type: 'button', 'aria-label': 'Pausar o reanudar la música', hidden: true },
     h('span', { class: 'mb-icon', svg: ICONS.music }),
     h('span', { class: 'bars', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i')));
-  const sync = () => btn.classList.toggle('playing', !audio.paused);
-  audio.addEventListener('play', sync); audio.addEventListener('pause', sync);
-  btn.addEventListener('click', () => (audio.paused ? audio.play().catch(() => {}) : audio.pause()));
+  const sync = () => btn.classList.toggle('playing', player.playing);
+  const play = () => Promise.resolve(player.play()).catch(() => {}).then(sync);
+  btn.addEventListener('click', () => { if (player.playing) { player.pause(); sync(); } else play(); });
   document.body.append(btn);
   return {
-    play() { btn.hidden = false; return audio.play().catch(() => sync()); },
-    pause() { audio.pause(); },
+    play() { btn.hidden = false; return play(); },
+    pause() { player.pause(); sync(); },
     show() { btn.hidden = false; },
-    destroy() { audio.pause(); audio.src = ''; btn.remove(); },
-    get playing() { return !audio.paused; },
+    destroy() { player.pause(); player.stop?.(); btn.remove(); },
+    get playing() { return player.playing; },
   };
 }

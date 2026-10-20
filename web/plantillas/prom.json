@@ -64,9 +64,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Estás invitada a nuestro",
+      "greeting": "",
       "title": "Prom",
-      "names": "Una tarde para celebrar"
+      "names": "Una tarde para celebrar",
+      "pretitle": "Estás invitada a nuestro",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,
@@ -140,8 +142,9 @@
     },
     "closing": {
       "enabled": true,
-      "text": "Será un honor compartir esta tarde con usted.\nGracias por todo.",
-      "signature": "Grado Décimo"
+      "text": "Será un honor compartir esta tarde con usted.",
+      "signature": "Grado Décimo",
+      "title": "¡La esperamos!"
     }
   }
 }

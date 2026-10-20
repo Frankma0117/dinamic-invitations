@@ -39,6 +39,14 @@ Manuel: no es técnico en servidores, necesita pasos clic a clic y quiere hacer 
       **horizontal en celular**: aviso animado para girar → pantalla completa → al "Continuar" aviso para volver a
       ponerlo derecho. **Todo personalizable**: `THEME_KEYS` (colores de invitación, sobre, sello, nombre; `fontName`
       = letra del nombre), sello con imagen propia (`seal.type = image`), selector visual de letras (70 fuentes).
+- [x] 2026-10-20 (noche 2): **editor rediseñado** (pestañas Diseño · Sobre · Contenido · Multimedia · Sonido · Invitados ·
+      Compartir; cada columna con su scroll; celular de vista previa escalado con `--k`; en el celular pestañas abajo).
+      **Encabezado en orden**: `pretitle` → `title` → `names` y luego el saludo (`greeting`) + nombre del invitado
+      (`guestPosition` after/before); `normalize()` migra configs viejas (greeting → pretitle). **Carta del sobre**
+      personalizable (`opening.letter` con `{nombre}`, `letterPaper`/`letterInk`). **Mensaje final** con frase grande
+      (`closing.title`, por defecto "¡Te esperamos!"). **Sonidos** sintetizados (`sfx.js`: sello, papel, carta, campanita,
+      secciones, continuar) y **música incluida** (`music.src = builtin:<id>`, 4 melodías) además de MP3 propio.
+      **Invitados**: subir varios videos a la vez; cada archivo se asigna al invitado por su nombre (o lo crea).
 - [ ] Respaldo diario de `data/` (como aula-interactiva → Spaces `cania-storage/invitaciones/backups/`).
 - [ ] Idea: que el editor guarde directo en el servidor (con contraseña) para no pasar el config.json a mano.
 

@@ -30,9 +30,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Tenemos el gusto de invitarle a",
+      "greeting": "",
       "title": "Lanzamiento 2027",
-      "names": "Nombre de la empresa"
+      "names": "Nombre de la empresa",
+      "pretitle": "Tenemos el gusto de invitarle a",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

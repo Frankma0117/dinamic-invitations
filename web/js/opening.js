@@ -17,12 +17,16 @@ function seal(cfg) {
 const hint = cfg => (cfg.opening.hint ? h('p', { class: 'intro-hint' }, cfg.opening.hint) : null);
 const nameEl = (cfg, guest) => h('p', { class: 'env-name' }, guest || cfg.guest.fallback || 'Para ti');
 
-function letterPreview(cfg, decor) {
-  const hd = cfg.sections.header;
+function letterPreview(cfg, decor, guest) {
+  const hd = cfg.sections.header, lt = cfg.opening.letter || {};
+  const who = guest || cfg.guest.fallback || '';
+  const fill = t => String(t || '').replace(/\{nombre\}/g, who).trim();
+  const title = fill(lt.title) || hd.title, sub = fill(lt.subtitle) || hd.names, text = fill(lt.text);
   return h('div', { class: 'letter-in' },
-    h('div', { class: 'ornament small', svg: ornament(decor) }),
-    hd.title && h('p', { class: 'letter-title' }, hd.title),
-    hd.names && h('p', { class: hd.names.length > 16 ? 'letter-names long' : 'letter-names' }, hd.names));
+    lt.ornament !== false && h('div', { class: 'ornament small', svg: ornament(decor) }),
+    title && h('p', { class: 'letter-title' }, title),
+    sub && h('p', { class: sub.length > 16 ? 'letter-names long' : 'letter-names' }, sub),
+    text && h('p', { class: 'letter-text' }, text));
 }
 
 const BUILD = {
@@ -31,7 +35,7 @@ const BUILD = {
       h('div', { class: 'env-wrap float' },
         h('div', { class: 'env' },
           h('div', { class: 'env-back' }),
-          h('div', { class: 'letter' }, letterPreview(cfg, decor)),
+          h('div', { class: 'letter' }, letterPreview(cfg, decor, guest)),
           h('div', { class: 'env-front' }), h('div', { class: 'env-bottom' }),
           nameEl(cfg, guest),
           h('div', { class: 'flap' }),
@@ -42,10 +46,10 @@ const BUILD = {
     return h('div', { class: 'scene' },
       h('div', { class: 'dip-wrap float' },
         h('div', { class: 'dip' },
-          h('div', { class: 'dip-page' }, letterPreview(cfg, decor)),
+          h('div', { class: 'dip-page' }, letterPreview(cfg, decor, guest)),
           h('div', { class: 'dip-cover' },
             h('div', { class: 'face front' }, h('div', { class: 'ornament small', svg: ornament(decor) }), nameEl(cfg, guest), seal(cfg)),
-            h('div', { class: 'face back' }, cfg.sections.header.greeting && h('p', { class: 'letter-greeting' }, cfg.sections.header.greeting))))),
+            h('div', { class: 'face back' }, cfg.sections.header.pretitle && h('p', { class: 'letter-greeting' }, cfg.sections.header.pretitle))))),
       hint(cfg));
   },
   curtain(cfg, guest) {
@@ -59,7 +63,7 @@ const BUILD = {
  * Shows the intro over the page. onTap runs inside the tap (audio may start there); onDone when the card is fully shown.
  * Returns a cleanup function.
  */
-export function playOpening(cfg, { guest, decor, onTap, onReveal, onDone }) {
+export function playOpening(cfg, { guest, decor, onTap, onReveal, onDone, sound = () => {} }) {
   const style = BUILD[cfg.opening.style] ? cfg.opening.style : 'none';
   if (style === 'none') { onDone?.(); return () => {}; }
   const intro = h('div', { class: `intro intro-${style}`, role: 'button', tabindex: '0', 'aria-label': `${cfg.opening.hint || 'Abrir invitación'}` },
@@ -82,10 +86,11 @@ export function playOpening(cfg, { guest, decor, onTap, onReveal, onDone }) {
     onTap?.();
     const gsap = window.gsap;
     if (!gsap || reducedMotion()) {
+      sound('chime');
       intro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: 'ease-out' }).onfinish = finish;
       return;
     }
-    TIMELINES[style](gsap, intro, finish, onReveal);
+    TIMELINES[style](gsap, intro, finish, onReveal, sound);
   };
   intro.addEventListener('click', start);
   intro.addEventListener('keydown', start);
@@ -114,11 +119,12 @@ function growToScreen(gsap, tl, el, intro, at) {
 }
 
 const TIMELINES = {
-  envelope(gsap, intro, done) {
+  envelope(gsap, intro, done, reveal, sound) {
     const q = s => intro.querySelector(s);
     const wrap = q('.env-wrap'), flap = q('.flap'), letter = q('.letter');
     wrap.classList.remove('float');
     const tl = gsap.timeline({ onComplete: done });
+    tl.call(sound, ['crack'], .05).call(sound, ['paper'], .5).call(sound, ['slide'], 1.1).call(sound, ['chime'], 2.4);
     tl.to(q('.intro-hint'), { opacity: 0, y: 10, duration: .3 }, 0);
     breakSeal(gsap, tl, intro, 0);
     tl.to(flap, { rotationX: 180, duration: .75, ease: 'power2.inOut' }, .45)
@@ -130,11 +136,12 @@ const TIMELINES = {
       .to([q('.env-back'), q('.env-front'), q('.env-bottom'), flap], { y: 140, opacity: 0, duration: .6, ease: 'power2.in' }, 1.95);
     growToScreen(gsap, tl, letter, intro, 2.45);
   },
-  diptych(gsap, intro, done) {
+  diptych(gsap, intro, done, reveal, sound) {
     const q = s => intro.querySelector(s);
     q('.dip-wrap').classList.remove('float');
     const dip = q('.dip');
     const tl = gsap.timeline({ onComplete: done });
+    tl.call(sound, ['crack'], .05).call(sound, ['paper'], .55).call(sound, ['chime'], 1.85);
     tl.to(q('.intro-hint'), { opacity: 0, duration: .3 }, 0);
     breakSeal(gsap, tl, intro, 0);
     tl.to(q('.dip-cover'), { rotationY: -180, duration: 1.1, ease: 'power2.inOut' }, .5)
@@ -142,9 +149,10 @@ const TIMELINES = {
     growToScreen(gsap, tl, q('.dip-page'), intro, 1.9);
     tl.to(q('.dip-cover'), { opacity: 0, duration: .4 }, 1.9);
   },
-  curtain(gsap, intro, done, reveal) {
+  curtain(gsap, intro, done, reveal, sound) {
     const q = s => intro.querySelector(s);
     const tl = gsap.timeline({ onComplete: done });
+    tl.call(sound, ['crack'], .05).call(sound, ['whoosh'], .55).call(sound, ['chime'], 1.3);
     tl.add(() => reveal?.(), .9);          // the card is already behind the curtain: it appears while it opens
     breakSeal(gsap, tl, intro, 0);
     tl.to(q('.plaque'), { opacity: 0, y: -20, duration: .5 }, .25)
@@ -184,7 +192,7 @@ const PHONE = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" wi
  * Horizontal media on a phone held upright: an animation asks to turn the phone and, once turned, it fills the
  * screen; on "Continuar" another animation asks to turn it back before the rest of the invitation shows.
  */
-export function playIntroMedia(m, { videoEmbed, el, decor, onEnd }) {
+export function playIntroMedia(m, { videoEmbed, el, decor, onEnd, sound = () => {} }) {
   const html = document.documentElement;
   const isPhone = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
   const portrait = matchMedia('(orientation: portrait)');
@@ -196,6 +204,7 @@ export function playIntroMedia(m, { videoEmbed, el, decor, onEnd }) {
     portrait.removeEventListener?.('change', update);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     media.pause?.();
+    sound('whoosh');
     box.classList.add('leaving');
     setTimeout(() => { box.remove(); html.classList.remove('locked'); }, 600);
     onEnd?.();

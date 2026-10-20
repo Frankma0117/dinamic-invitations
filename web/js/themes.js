@@ -161,12 +161,15 @@ function textureImage(kind, t) {
 
 /** Everything the editor can change on top of a preset (empty = the preset's value). */
 export const THEME_KEYS = ['primary', 'secondary', 'bg', 'paper', 'ink', 'envelope', 'envelopeInner', 'envelopeInk', 'seal', 'sealInk', 'curtain',
+  'letterPaper', 'letterInk',
   'fontTitle', 'fontBody', 'fontScript', 'fontName', 'texture', 'particles'];
 
 /** Preset + the user's overrides (empty values keep the preset's). */
 export function resolveTheme(themeCfg = {}) {
   const base = THEMES[themeCfg.preset] || THEMES.crema;
   const t = { ...base, fontName: base.fontName || base.fontScript, envelopeInk: base.envelopeInk || (base.dark ? base.primary : base.ink) };
+  t.letterPaper = themeCfg.letterPaper || themeCfg.paper || base.paper;
+  t.letterInk = themeCfg.letterInk || themeCfg.ink || base.ink;
   for (const k of THEME_KEYS) if (themeCfg[k]) t[k] = themeCfg[k];
   if (themeCfg.ink && !themeCfg.muted) t.muted = `color-mix(in srgb, ${t.ink} 68%, ${t.paper})`;
   return t;
@@ -180,6 +183,7 @@ export function applyTheme(themeCfg, root = document.documentElement) {
     '--envelope': t.envelope, '--envelope-inner': t.envelopeInner,
     '--seal': t.seal, '--seal-ink': t.sealInk, '--curtain': t.curtain,
     '--envelope-ink': t.envelopeInk,
+    '--letter-paper': t.letterPaper, '--letter-ink': t.letterInk,
     '--font-name': fontStack(t.fontName),
     '--font-title': fontStack(t.fontTitle), '--font-body': fontStack(t.fontBody), '--font-script': fontStack(t.fontScript),
     '--texture': textureImage(t.texture, t),

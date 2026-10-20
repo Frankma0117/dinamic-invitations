@@ -30,9 +30,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Te invito a celebrar mis",
+      "greeting": "",
       "title": "XV Años",
-      "names": "Valentina"
+      "names": "Valentina",
+      "pretitle": "Te invito a celebrar mis",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

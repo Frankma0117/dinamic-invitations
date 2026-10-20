@@ -30,9 +30,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "¡Estás invitado a mi fiesta!",
+      "greeting": "",
       "title": "Mi cumpleaños",
-      "names": "Samuel cumple 5"
+      "names": "Samuel cumple 5",
+      "pretitle": "¡Estás invitado a mi fiesta!",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

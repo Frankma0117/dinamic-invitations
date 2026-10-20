@@ -6,6 +6,7 @@ import { renderInvitation } from './render.js';
 import { playOpening, playIntroMedia, prepareIntroVideo } from './opening.js';
 import { startParticles, startReveal, startAutoVideos, startCountdown, createMusic } from './fx.js';
 import { h, videoEmbed, reducedMotion } from './util.js';
+import * as sfx from './sfx.js';
 
 const params = new URLSearchParams(location.search);
 const PREVIEW = params.has('preview');
@@ -39,6 +40,8 @@ function render(raw, { replay = false, as } = {}) {
   const cfg = forGuest(base, guest);
   const theme = applyTheme(cfg.theme);
 
+  sfx.configure(cfg.sounds);
+  const sound = name => sfx.play(name);
   music = createMusic(cfg.music);
   const ctx = { guest: name, seats: Number(guest?.seats) || 0, decor: theme.decor, music };
   app.replaceChildren(renderInvitation(cfg, ctx));
@@ -53,7 +56,7 @@ function render(raw, { replay = false, as } = {}) {
     if (shown) return;
     shown = true;
     document.documentElement.classList.add('opened');
-    cleanups.push(startReveal(app), startAutoVideos(app));
+    cleanups.push(startReveal(app, () => sound('page')), startAutoVideos(app));
   };
   const iv = introMedia(cfg);
   let ivEl = null;
@@ -62,7 +65,7 @@ function render(raw, { replay = false, as } = {}) {
     if (cfg.opening.confetti) confettiBurst(colors);
     if (iv) {
       if (iv.kind === 'video') music?.pause();
-      const close = playIntroMedia(iv, { videoEmbed, el: ivEl, decor: theme.decor, onEnd: () => { if (iv.kind === 'video') music?.play(); showCard(); } });
+      const close = playIntroMedia(iv, { videoEmbed, el: ivEl, decor: theme.decor, sound, onEnd: () => { if (iv.kind === 'video') music?.play(); showCard(); } });
       cleanups.push(close);
     } else showCard();
   };
@@ -73,7 +76,7 @@ function render(raw, { replay = false, as } = {}) {
     // No tap means no audio yet: the music starts with the first touch anywhere.
     if (music) {
       music.show();
-      const first = () => music?.play();
+      const first = () => { sfx.init(); music?.play(); };
       addEventListener('pointerdown', first, { once: true });
       cleanups.push(() => removeEventListener('pointerdown', first));
     }
@@ -81,8 +84,9 @@ function render(raw, { replay = false, as } = {}) {
     return;
   }
   cleanups.push(playOpening(cfg, {
-    guest: name, decor: theme.decor,
-    onTap: () => { if (iv?.kind === 'video') ivEl = prepareIntroVideo(iv); else music?.play(); },
+    guest: name, decor: theme.decor, sound,
+    onTap: () => {
+      sfx.init(); if (iv?.kind === 'video') ivEl = prepareIntroVideo(iv); else music?.play(); },
     onReveal: () => { if (!iv) showCard(); },
     onDone: afterOpen,
   }));

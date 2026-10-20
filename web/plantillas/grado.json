@@ -75,9 +75,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Querido compañero(a)",
+      "greeting": "",
       "title": "Fiesta de Grado",
-      "names": "Promoción 2026"
+      "names": "Promoción 2026",
+      "pretitle": "Querido compañero(a)",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

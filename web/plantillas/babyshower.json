@@ -30,9 +30,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Estás invitada a nuestro",
+      "greeting": "",
       "title": "Baby Shower",
-      "names": "Esperando a Sofía"
+      "names": "Esperando a Sofía",
+      "pretitle": "Estás invitada a nuestro",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

@@ -30,9 +30,11 @@
   "sections": {
     "header": {
       "enabled": true,
-      "greeting": "Tenemos el honor de invitarte a nuestra boda",
+      "greeting": "",
       "title": "Nos casamos",
-      "names": "Laura & Miguel"
+      "names": "Laura & Miguel",
+      "pretitle": "Tenemos el honor de invitarte a nuestra boda",
+      "guestPosition": "after"
     },
     "message": {
       "enabled": true,

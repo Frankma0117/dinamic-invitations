@@ -16,14 +16,20 @@ function sec(id, title, ...kids) {
 
 const BUILD = {
   header(s, cfg, ctx) {
-    if (!filled(s.greeting) && !filled(s.title) && !filled(s.names)) return null;
-    return sec('header', null,
-      h('div', { class: 'ornament' }, h('span', { svg: ornament(ctx.decor) })),
+    if (!filled(s.pretitle) && !filled(s.title) && !filled(s.names) && !ctx.guest && !filled(s.greeting)) return null;
+    const who = (filled(s.greeting) || ctx.guest || ctx.seats > 0) && h('div', { class: 'salutation' },
       filled(s.greeting) && h('p', { class: 'greeting' }, s.greeting),
       ctx.guest && h('p', { class: 'guest-name' }, ctx.guest),
-      ctx.seats > 0 && h('p', { class: 'seats' }, fillTemplate(cfg.guest.seatsText || 'Pase para {cupos}', { cupos: ctx.seats }).replace('(s)', ctx.seats === 1 ? '' : 's')),
+      ctx.seats > 0 && h('p', { class: 'seats' }, fillTemplate(cfg.guest.seatsText || 'Pase para {cupos}', { cupos: ctx.seats }).replace('(s)', ctx.seats === 1 ? '' : 's')));
+    const before = s.guestPosition === 'before';
+    return sec('header', null,
+      h('div', { class: 'ornament' }, h('span', { svg: ornament(ctx.decor) })),
+      before && who,
+      filled(s.pretitle) && h('p', { class: 'pretitle' }, s.pretitle),
       filled(s.title) && h('h1', { class: 'title' }, s.title),
       filled(s.names) && h('p', { class: s.names.length > 16 ? 'names long' : 'names' }, s.names),
+      !before && who && h('div', { class: 'divider small', 'aria-hidden': 'true', svg: sectionDivider(ctx.decor) }),
+      !before && who,
     );
   },
 
@@ -131,9 +137,13 @@ const BUILD = {
     ));
   },
 
-  closing(s) {
-    if (!filled(s.text) && !filled(s.signature)) return null;
-    return sec('closing', null, filled(s.text) && paragraphs(s.text, 'lead'), filled(s.signature) && h('p', { class: 'signature' }, s.signature));
+  closing(s, cfg, ctx) {
+    if (!filled(s.title) && !filled(s.text) && !filled(s.signature)) return null;
+    return sec('closing', null,
+      filled(s.title) && h('p', { class: 'farewell' }, s.title),
+      filled(s.text) && paragraphs(s.text, 'lead'),
+      filled(s.signature) && h('p', { class: 'signature' }, s.signature),
+      h('div', { class: 'ornament end', svg: ornament(ctx.decor) }));
   },
 };
 
