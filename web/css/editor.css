@@ -206,14 +206,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .glist { display: grid; gap: 10px; }
 .grow { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; transition: box-shadow .15s; }
 .grow.open { box-shadow: var(--shadow); border-color: #d6cfc2; }
-.grow-main { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; }
+.grow-main { display: grid; grid-template-columns: 54px minmax(0, 1fr); column-gap: 12px; row-gap: 10px; align-items: center; padding: 12px; }
 .g-thumb { position: relative; width: 54px; height: 54px; border-radius: 12px; background: var(--accent-soft) center / cover; display: grid; place-items: center; color: var(--accent); font-weight: 700; font-size: 1.1rem; overflow: hidden; }
 .g-thumb .play { position: absolute; right: 4px; bottom: 4px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff; font-size: .55rem; display: grid; place-items: center; }
 .g-info { min-width: 0; display: grid; gap: 4px; }
 .g-name { width: 100%; min-height: 34px !important; padding: 4px 8px !important; border-color: transparent !important; background: transparent !important; font-weight: 650; font-size: .98rem; }
 .g-name:hover { border-color: var(--line) !important; }
 .g-name:focus { border-color: var(--accent) !important; background: var(--surface) !important; }
-.g-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 8px; }
+.g-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 8px; min-width: 0; }
+.g-meta .chip { white-space: nowrap; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 600; background: var(--line-2); color: var(--muted); }
 .chip.ok { background: var(--ok-soft); color: var(--ok); }
 .chip.warn { background: var(--warn-soft); color: var(--warn); }
@@ -222,8 +223,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .chip.gender.set { background: var(--accent-soft); color: var(--accent); }
 .hint.gx { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); white-space: pre-wrap; }
 .chip button { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
-.g-link { font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.g-actions { display: flex; gap: 6px; align-items: center; }
+.g-link { flex-basis: 100%; font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.g-actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.g-actions .btn { flex: 0 0 auto; }
 .grow-more { display: grid; gap: 12px; padding: 14px; border-top: 1px solid var(--line-2); background: var(--surface-2); }
 .grow-more[hidden] { display: none; }
 .grow .progress { margin: 0 12px 10px; }
@@ -284,5 +286,5 @@ dialog::backdrop { background: rgba(25, 28, 25, .45); backdrop-filter: blur(3px)
 @media (max-width: 520px) {
   .grid2 { grid-template-columns: 1fr; }
   .grow-main { grid-template-columns: 48px minmax(0, 1fr); }
-  .g-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .g-actions { grid-column: 1 / -1; }
 }
